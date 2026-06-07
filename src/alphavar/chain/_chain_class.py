@@ -3,10 +3,10 @@ import datetime
 from typing import Self
 import pandas as pd
 
-from options_lib.dictionary import OptionsColumns as OCl
+from alphavar.options_lib.dictionary import OptionsColumns as OCl
 
 
-from options_lib.chain.chain_selector import (
+from alphavar.options_lib.chain.chain_selector import (
     validate_chain,
     select_chain,
     get_chain_settlement_and_expiration_date,
@@ -14,12 +14,12 @@ from options_lib.chain.chain_selector import (
     get_settlement_longest_period_expired_date
 )
 
-from options_lib.chain.price_status import (
+from alphavar.options_lib.chain.price_status import (
     get_chain_atm_itm_otm,
     get_chain_atm_nearest_strikes,
     get_chain_atm_strike
 )
-from options_lib.chain.desk import convert_chain_to_desk
+from alphavar.options_lib.chain.desk import convert_chain_to_desk
 from alphavar.option_data_class import OptionData
 
 class OptionChain:

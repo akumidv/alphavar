@@ -4,14 +4,14 @@ import datetime
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import (
+from alphavar.options_lib.dictionary import (
     OptionsColumns as OCl,
     FuturesColumns as FCl,
     SpotColumns as SCl
 )
-from exchange import RequestClass
-from exchange import AbstractExchange
-from exchange.deribit import DeribitMarket, DeribitExchange, DeribitAssetKind
+from alphavar.exchange import RequestClass
+from alphavar.exchange import AbstractExchange
+from alphavar.exchange.deribit import DeribitMarket, DeribitExchange, DeribitAssetKind
 
 
 @pytest.fixture(name='deribit_market')

@@ -3,10 +3,10 @@ import datetime
 import pandas as pd
 
 from plotly import graph_objs as go
-from options_lib.dictionary import OptionsColumns as OCl, OptionsType
+from alphavar.options_lib.dictionary import OptionsColumns as OCl, OptionsType
 from alphavar.option_data_class import OptionData
 from alphavar.analytic import OptionAnalytic
-from options_lib.chart.price._time_value_chart import get_chart_data_for_time_values_series
+from alphavar.options_lib.chart.price._time_value_chart import get_chart_data_for_time_values_series
 
 
 class ChartPriceClass:

@@ -1,5 +1,5 @@
 import os
-from messanger import TelegramMessanger
+from alphavar.messanger import TelegramMessanger
 
 
 def test_send_message():

@@ -4,8 +4,8 @@ import time
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import OptionsColumns as OCl, Timeframe, OptionsType
-from options_lib.normalization.timeframe_resample import _get_group_columns_by_type, convert_to_timeframe
+from alphavar.options_lib.dictionary import OptionsColumns as OCl, Timeframe, OptionsType
+from alphavar.options_lib.normalization.timeframe_resample import _get_group_columns_by_type, convert_to_timeframe
 
 
 def test__get_group_columns_by_type_spot():

@@ -2,10 +2,10 @@ import datetime
 from functools import lru_cache
 import pandas as pd
 import pytest
-from options_lib.dictionary import Timeframe, AssetKind
-from options_lib.dictionary import OptionsColumns as OCl
-from options_etl.etl_updates_to_history import EtlHistory
-from exchange.exchange_entities import ExchangeCode
+from alphavar.options_lib.dictionary import Timeframe, AssetKind
+from alphavar.options_lib.dictionary import OptionsColumns as OCl
+from alphavar.options_etl.etl_updates_to_history import EtlHistory
+from alphavar.exchange.exchange_entities import ExchangeCode
 
 
 START_TS = None

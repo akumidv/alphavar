@@ -5,9 +5,29 @@ authors = [
     {name ="Andrei Kuminov", email ="akuminov@gmail.com"}
 ]
 description = "alphavar (alpha + VaR) — a Python library for risk-aware options and futures analysis and visualization"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.11"
+keywords = ["options", "futures", "derivatives", "volatility", "value-at-risk", "trading", "quant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.urls]
+Homepage = "https://alphavar.dev"
+Repository = "https://github.com/akumidv/alphavar"
+Documentation = "https://alphavar.dev"
 
 [tool.poetry]
-package-mode = false
+packages = [{ include = "alphavar", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -34,6 +54,7 @@ optional = true
 setuptools = "^80.9.0"
 jupyter = "^1.1.1"
 pylint = "^3.3.4"
+twine = "^6.0.0"
 
 [tool.poetry.group.test]
 optional = true

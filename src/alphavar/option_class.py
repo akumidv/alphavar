@@ -3,8 +3,8 @@ import datetime
 
 import pandas as pd
 
-from options_lib.dictionary import Timeframe
-from provider import AbstractProvider, RequestParameters
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.provider import AbstractProvider, RequestParameters
 from alphavar.option_data_class import OptionData
 from alphavar.enrichment import OptionEnrichment
 from alphavar.chain import OptionChain

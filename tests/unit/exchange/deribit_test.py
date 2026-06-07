@@ -1,10 +1,10 @@
 """Deribit exchange provider"""
 import pytest
 import pandas as pd
-from options_lib.dictionary import AssetKind
-from provider import AbstractProvider
-from exchange import AbstractExchange
-from exchange.deribit import DeribitExchange
+from alphavar.options_lib.dictionary import AssetKind
+from alphavar.provider import AbstractProvider
+from alphavar.exchange import AbstractExchange
+from alphavar.exchange.deribit import DeribitExchange
 
 
 def test_deribit_exchange_init():

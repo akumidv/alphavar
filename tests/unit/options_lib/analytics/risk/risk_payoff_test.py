@@ -1,9 +1,9 @@
 import pytest
 import pandas as pd
-from options_lib.dictionary import OptionsColumns as OCl, OptionsType, LegType
-from options_lib.entities import OptionsLeg
-from options_lib.analytic.risk import payoff
-from options_lib.analytic.risk import RiskColumns as RCl
+from alphavar.options_lib.dictionary import OptionsColumns as OCl, OptionsType, LegType
+from alphavar.options_lib.entities import OptionsLeg
+from alphavar.options_lib.analytic.risk import payoff
+from alphavar.options_lib.analytic.risk import RiskColumns as RCl
 
 import matplotlib
 matplotlib.use('inline')

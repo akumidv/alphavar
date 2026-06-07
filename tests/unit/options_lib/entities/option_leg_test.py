@@ -1,6 +1,6 @@
 """Test option leg entity"""
-from options_lib.dictionary import LegType
-from options_lib.entities import OptionsLeg
+from alphavar.options_lib.dictionary import LegType
+from alphavar.options_lib.entities import OptionsLeg
 
 
 def test_option_leg():

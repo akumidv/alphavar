@@ -10,9 +10,12 @@ scripts/_*
 test.env
 /data/
 *.tar
+/dist/
+/build/
+*.egg-info/
 TODO.txt
 /demo/**/_*.*
-/descriptions/pages/phd/
 node_modules/
 .next/
 docs/phd/
+.gitmodules

@@ -2,8 +2,8 @@
 
 import pandas as pd
 
-from options_lib.analytic.risk.payoff import chain_payoff
-from options_lib.entities import OptionsLeg
+from alphavar.options_lib.analytic.risk.payoff import chain_payoff
+from alphavar.options_lib.entities import OptionsLeg
 from alphavar.option_data_class import OptionData
 
 

@@ -1,9 +1,9 @@
 """Deribit exchange provider"""
 import pandas as pd
-from options_lib.dictionary import AssetKind, OptionsColumns as OCl
-from provider import AbstractProvider
-from exchange import AbstractExchange
-from exchange.moex import MoexExchange
+from alphavar.options_lib.dictionary import AssetKind, OptionsColumns as OCl
+from alphavar.provider import AbstractProvider
+from alphavar.exchange import AbstractExchange
+from alphavar.exchange.moex import MoexExchange
 
 
 def test_moex_exchange_init():

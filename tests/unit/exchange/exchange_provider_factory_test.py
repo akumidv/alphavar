@@ -1,10 +1,10 @@
 """Provider fabric tests"""
-from provider import DataSource, DataEngine
-from provider import (
+from alphavar.provider import DataSource, DataEngine
+from alphavar.provider import (
     PandasLocalFileProvider
 )
-from exchange import ExchangeCode
-from exchange import BinanceExchange, DeribitExchange, get_provider
+from alphavar.exchange import ExchangeCode
+from alphavar.exchange import BinanceExchange, DeribitExchange, get_provider
 
 
 def test_get_provider_local(exchange_code, data_path):

@@ -1,8 +1,8 @@
 """Binance exchange provider"""
 
-from provider import AbstractProvider
-from exchange import AbstractExchange
-from exchange.binance import BinanceExchange
+from alphavar.provider import AbstractProvider
+from alphavar.exchange import AbstractExchange
+from alphavar.exchange.binance import BinanceExchange
 
 
 def test_binance_exchange_init():

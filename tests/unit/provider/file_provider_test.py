@@ -5,9 +5,9 @@ import datetime
 import pytest
 import pandas as pd
 
-from options_lib.dictionary import AssetKind, Timeframe
-from provider import RequestParameters
-from provider._file_provider import AbstractFileProvider
+from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.provider import RequestParameters
+from alphavar.provider._file_provider import AbstractFileProvider
 
 
 class TestFileProvider(AbstractFileProvider):

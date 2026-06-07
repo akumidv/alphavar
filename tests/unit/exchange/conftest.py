@@ -1,6 +1,6 @@
 import pytest
-from exchange import RequestClass
-from exchange.moex import MoexOptions, MoexExchange
+from alphavar.exchange import RequestClass
+from alphavar.exchange.moex import MoexOptions, MoexExchange
 
 @pytest.fixture(name='moex_options_client')
 def moex_options_fixture():

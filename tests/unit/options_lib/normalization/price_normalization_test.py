@@ -1,8 +1,8 @@
 import pandas as pd
-from options_lib.dictionary import (
+from alphavar.options_lib.dictionary import (
     OptionsColumns as OCl, OptionsType
 )
-from options_lib.normalization.price import fill_option_price
+from alphavar.options_lib.normalization.price import fill_option_price
 
 
 def test_fill_option_price():

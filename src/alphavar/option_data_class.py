@@ -7,18 +7,18 @@ from pandas.core.frame import DataFrame
 from pandas.core.frame import DataFrame
 
 
-from provider._provider_entities import RequestParameters
+from alphavar.provider._provider_entities import RequestParameters
 
 
-from provider._provider_entities import RequestParameters
+from alphavar.provider._provider_entities import RequestParameters
 
 
 
 from pandas.core.frame import DataFrame
 
 
-from options_lib.dictionary import Timeframe, OptionsColumns as OCl
-from provider import AbstractProvider, RequestParameters
+from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl
+from alphavar.provider import AbstractProvider, RequestParameters
 
 
 class OptionData:

@@ -2,9 +2,9 @@
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import OptionsColumns as OCl
+from alphavar.options_lib.dictionary import OptionsColumns as OCl
 from alphavar import Option
-from provider import PandasLocalFileProvider
+from alphavar.provider import PandasLocalFileProvider
 
 
 @pytest.fixture(name='option_instance')

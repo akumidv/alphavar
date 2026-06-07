@@ -2,9 +2,9 @@ import datetime
 
 import pandas as pd
 import pytest
-from options_lib.dictionary import Timeframe, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
-from options_etl.etl_class import AssetBookData
-from options_etl.moex_etl import EtlMoex
+from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
+from alphavar.options_etl.etl_class import AssetBookData
+from alphavar.options_etl.moex_etl import EtlMoex
 
 
 class TestEtlMoex(EtlMoex):

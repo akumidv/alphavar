@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import OptionsColumns as OCl
+from alphavar.options_lib.dictionary import OptionsColumns as OCl
 from alphavar.enrichment import OptionEnrichment
 
 

@@ -4,8 +4,8 @@ import datetime
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import OptionsColumns as OCl, OptionsPriceStatus
-from options_lib.enrichment import price
+from alphavar.options_lib.dictionary import OptionsColumns as OCl, OptionsPriceStatus
+from alphavar.options_lib.enrichment import price
 
 
 def test_add_intrinsic_and_time_value(df_opt_hist):

@@ -1,6 +1,6 @@
 """Pandas columns test"""
 import pandas as pd
-from options_lib.dictionary._dataframe_columns import OptionsColumns, FuturesColumns
+from alphavar.options_lib.dictionary._dataframe_columns import OptionsColumns, FuturesColumns
 
 
 def test_opt_columns():

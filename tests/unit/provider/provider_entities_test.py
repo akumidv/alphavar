@@ -1,8 +1,8 @@
 """Provider entities tests"""
 import datetime
-from options_lib.dictionary import Timeframe
+from alphavar.options_lib.dictionary import Timeframe
 
-from provider import RequestParameters
+from alphavar.provider import RequestParameters
 
 
 def test_provider_parameters():

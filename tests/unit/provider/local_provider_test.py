@@ -1,6 +1,6 @@
 """Tests for local provider"""
 import pandas as pd
-from provider import AbstractProvider
+from alphavar.provider import AbstractProvider
 
 
 def test_load_option(exchange_provider, option_symbol, provider_params):

@@ -1,7 +1,7 @@
 """Exchange fabric tests"""
-from exchange.exchange_entities import ExchangeCode
-from provider import DataEngine
-from exchange import (
+from alphavar.exchange.exchange_entities import ExchangeCode
+from alphavar.provider import DataEngine
+from alphavar.exchange import (
     get_exchange, DeribitExchange, BinanceExchange
 )
 

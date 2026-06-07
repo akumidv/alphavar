@@ -4,11 +4,11 @@ from pydantic import ValidationError
 import pandas as pd
 import pytest
 
-from options_lib.dictionary import (
+from alphavar.options_lib.dictionary import (
     OptionsColumns as OCl,
 )
-from exchange import RequestClass
-from exchange.moex import MoexOptions, MoexExchange, MoexAssetType
+from alphavar.exchange import RequestClass
+from alphavar.exchange.moex import MoexOptions, MoexExchange, MoexAssetType
 from functools import lru_cache
 
 

@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 from cachetools import TTLCache, cached
 
-from exchange import DeribitExchange
-from options_lib.dictionary import AssetKind, Timeframe
-from options_etl.etl_class import AssetBookData, EtlOptions
+from alphavar.exchange import DeribitExchange
+from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.options_etl.etl_class import AssetBookData, EtlOptions
 
 
 class TestEtl(EtlOptions):
