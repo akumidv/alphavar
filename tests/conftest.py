@@ -11,7 +11,7 @@ from options_lib.enrichment import join_option_with_future
 from options_lib.chain.chain_selector import select_chain, get_max_settlement_valid_expired_date
 from options_lib.chain.price_status import get_chain_atm_strike
 
-from options_assembler.option_data_class import OptionData
+from alphavar.option_data_class import OptionData
 from provider import PandasLocalFileProvider, RequestParameters
 
 from exchange.deribit import DeribitExchange

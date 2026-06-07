@@ -1,53 +1,85 @@
+# alphavar
 
-# options_assembler
+**alphavar** is a Python library for options (and futures) analysis and visualization.
 
-Option library have goal to assist implement in code base concepts of using options.
+The name reads as **alpha + VaR** — *alpha* (returns above the market) combined with
+*Value-at-Risk* — reflecting the project's focus: turning raw options data into
+risk-aware analytics. It gives you a single interface to fetch options/futures data from
+different providers, enrich it with computed metrics, work with option chains, analyze
+risk (payoff profiles) and time value, and visualize the results.
 
-**NB Early stage of developing**
+> **NB:** Early stage of development — the API may change.
+>
+> A parallel implementation in Rust is in progress (with a large delay):
+> [alphavar-rust](https://github.com/akumidv/alphavar-rust).
 
-PS also in parallel the same developing in Rust as [Rust options assembler](https://github.com/akumidv/rust-options-assembler) (with big delay)
+## What it does
 
-## Env
+- **Data** — retrieve options/futures data from exchange APIs (Deribit, MOEX, …) or local files.
+- **Enrichment** — add computed metrics: intrinsic/time value, ATM/ITM/OTM, Greeks.
+- **Chains** — build and select option chains, assemble option "desks".
+- **Analytics** — risk/payoff profiles for option combinations, time-value analysis.
+- **Charts** — visualization via Plotly / matplotlib.
+- **ETL** — accumulate historical snapshots of quotes.
 
-Install all dependecies for dev and test by
+The library follows a provider pattern: different data sources plug in through the
+`AbstractProvider` interface. The main entry point is the `Option` class in
+[src/alphavar/option_class.py](src/alphavar/option_class.py).
+
+## Quick start
+
+Install all dependencies for development and testing with Poetry:
 
 ```bash
 poetry install --with etl,dev,test
 ```
 
+```python
+from alphavar import Option
+```
+
 ## Demo
 
-Easiest way to check haw to use option_lib is open Jupyter Notebook files in demo folder on your Google Collab.
+The easiest way to see how to use alphavar is to open the Jupyter notebooks in the
+`demo/` folder on Google Colab:
 
-1. Open [Google Collab](https://colab.research.google.com/)
-2. Click to `File/Open` menu item.
-3. On `Open notebook` popup window select GitHub and enter to an input field `Enter a Github URL or search by organization
-   or user` link to current repository [option_lib](https://github.com/akumidv/option_lib.git)
-4. Verify that in Repository dropdown selected `option_lib`
-5. On table below will be showed list of Jupyter Notebooks
-6. Select anyone, for example
-![gcollab-github-dialog.png](docs/public/images/gcollab-github-dialog.png)
-7. Click to icon next to name `Open ... in new tab`
-For example [Smart Investor](https://github.com/akumidv/option_lib/blob/main/demo/Options%20for%20Smart%20Investor.ipynb)
+1. Open [Google Colab](https://colab.research.google.com/).
+2. Click `File / Open notebook`.
+3. In the popup, select **GitHub** and paste the repository URL:
+   [alphavar](https://github.com/akumidv/alphavar.git).
+4. Verify `alphavar` is selected in the Repository dropdown.
+5. The list of notebooks appears below — pick one, e.g.
+   [Options for Smart Investor](https://github.com/akumidv/alphavar/blob/main/demo/books_and_articles_reproducing/Options%20for%20Smart%20Investor.ipynb).
+
+ETL examples for different exchanges (Deribit, MOEX) are in `demo/etl_example/`.
 
 ## Data
 
-Easiest way to get data Example is load sample from shared [Google drive folder](https://drive.google.com/drive/folders/1NJNxkkUYzCfADIlPHyaZQ0jrfW9WJn2I?usp=sharing).
-Save them in data folder and set path to it in `DATA_PATH` environment.
+The easiest way to get sample data is to download it from the shared
+[Google Drive folder](https://drive.google.com/drive/folders/1NJNxkkUYzCfADIlPHyaZQ0jrfW9WJn2I?usp=sharing).
+Save the files into a data folder and point `DATA_PATH` (in `test.env`) at it.
 
-Also, you can see Jupyter Notebooks `demo` - they have bash with `gdrive` implementation how download data.
+The `demo/` notebooks also include `gdrive` snippets showing how to download the data.
 
-## Docs
+## Documentation
 
-Go to the docs folder by `cd ./docs` and run (be sure you have node.js installed on your PC)
+User-facing documentation is a Next.js (Markdoc) site in the `docs/` folder.
+With Node.js installed:
 
 ```bash
+cd ./docs
 npm install
 npm run dev
 ```
 
-Open link that will be shown in console
+Then open the link printed in the console.
 
-In future plans if there will be some useful code and docs to deploy with Vercel or Netlify.
+> The docs are still minimal. In the future they may be deployed via Vercel or Netlify.
 
-Now docs are almost empty.
+Architecture, design decisions, and development notes live in
+[docs/dev/PROJECT_OVERVIEW.md](docs/dev/PROJECT_OVERVIEW.md).
+
+## For AI agents
+
+Guidance for AI coding agents (Claude Code, Copilot, etc.) is in
+[AGENTS.md](AGENTS.md). [CLAUDE.md](CLAUDE.md) points to the same file.

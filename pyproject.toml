@@ -1,10 +1,10 @@
 [project]
-name = "option_assembler"
+name = "alphavar"
 version = "0.1.1"
 authors = [
-    {name ="Andrei Kuminov", email ="akumidv@yandex.ru"}
+    {name ="Andrei Kuminov", email ="akuminov@gmail.com"}
 ]
-description = "Option library for study purpouse"
+description = "alphavar (alpha + VaR) — a Python library for risk-aware options and futures analysis and visualization"
 
 [tool.poetry]
 package-mode = false
