@@ -13,3 +13,5 @@ test.env
 TODO.txt
 /demo/**/_*.*
 /descriptions/pages/phd/
+node_modules/
+.next/
