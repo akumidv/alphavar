@@ -13,6 +13,24 @@ which no longer exists (renamed to `EXCHANGE_MARK_PRICE` during refactoring). Ev
 Deribit book snapshot raises `AttributeError`; 10+ tests in
 `tests/unit/exchange/deribit_market_test.py` fail. Audit the whole module (and
 `moex.py`) for other stale enum names after the rename.
+**Done (2026-06-13):** fixed `EXCHANGE_PRICE`→`EXCHANGE_MARK_PRICE` (deribit, moex,
+etl_updates_to_history), removed dead `SETTLEMENT_IV` write, fixed `AssetType.OPTIONS/
+FUTURES`→`AssetKind.*` (moex, moex_etl). Added an enum-validity scan; src is clean.
+
+### T1b. Fix `AbstractProvider` ↔ exchange method-name mismatch
+The "option→options"/"future→futures" rename touched `AbstractProvider`
+(`load_options_history`, `load_options_book`, `load_options_chain`,
+`load_futures_history`, `load_futures_book`, `get_asset_history_years`, all taking
+`asset_code`) but **not** the exchange subclasses (`deribit.py`, `moex.py`,
+`binance.py`), which still declare the old singular names with a `symbol` parameter.
+Result: `DeribitExchange()`/`MoexExchange()`/`BinanceExchange()` cannot be instantiated
+(`TypeError: Can't instantiate abstract class ... without an implementation for ...`),
+breaking all ETL tests. Rename the methods/params to match the abstract contract.
+**Done (2026-06-13):** renamed `load_option*`→`load_options*` / `load_future*`→
+`load_futures*` and `symbol`→`asset_code` in deribit/moex/binance + the two callers in
+`etl_updates_to_history.py`; added `get_asset_history_years` stub to all three
+exchanges. All three now instantiate; ETL tests that don't depend on `DATA_PATH` pass.
+Remaining `PermissionError`s are the stale absolute `DATA_PATH` (see T7/T11).
 
 ### T2. Fix `SaveTask` mutation bug in ETL save path
 `SaveTask` is a `NamedTuple`, but `EtlOptions._save_task_dataframe()` ends with
@@ -24,6 +42,8 @@ Convert `SaveTask` to a `@dataclass` (it is mutated) or drop the mutation.
 stale `from options_etl...` imports. It is not shipped in the wheel and silently drifts
 from the real code. Delete it; keep only `src/alphavar/options_etl/`. Check `demo/`
 scripts for imports of the old path.
+**Done (2026-06-13):** `git rm -r src/options_etl`; repointed 4 demo scripts from
+`from options_etl ...` to `from alphavar.options_etl ...`. No stale references remain.
 
 ### T4. Fix dead exception handling around thread pools
 `executor.map()` raises on iteration — it never yields `Exception` objects, so:
@@ -34,11 +54,19 @@ scripts for imports of the old path.
   `job_res.result()` raises; the `isinstance(..., Exception)` check is dead code.
 Use `submit()` + `as_completed()` with per-task `try/except`, log the failed asset,
 continue with the rest.
+**Done (2026-06-13):** ETL `_book_snapshot_timeframe_job` now uses
+`submit()`+`as_completed()` with per-asset try/except + `continue` (one failing asset
+no longer aborts the tick); `_save_tasks_dataframes_job` likewise surfaces save errors
+instead of swallowing the lazy `map`. Deribit snapshot keeps fail-fast but via real
+`try/except` around `.result()`. Removed dead `functools` import.
 
 ### T5. Move `EtlOptions` mutable state to instances
 `_save_tasks`, all locks, counters and `_messages` are **class attributes**
 (`etl_class.py:39-54`) — shared across all `EtlOptions` instances (e.g. two exchanges
 in one process corrupt each other's save queues). Initialize them in `__init__`.
+**Done (2026-06-13):** moved `_save_tasks`, the four locks, `_messages` and the four
+counters into `__init__`; left class-level type annotations only. Verified two
+`EtlDeribit` instances no longer share `_save_tasks`/locks.
 
 ### T6. Fix dependency declarations / packaging
 - `psutil` (used by `exchange/cache.py`) and `requests` (used by
@@ -51,6 +79,24 @@ in one process corrupt each other's save queues). Initialize them in `__init__`.
   that pip users can't install — expose it as a pip extra
   (`alphavar[etl]`) and make the import error actionable.
 
+**Done (2026-06-13):** declared `numpy`, `plotly`, `requests`, `psutil` as core deps;
+moved `apscheduler` to `optional = true` + `[tool.poetry.extras] etl = ["apscheduler"]`
+(pip `alphavar[etl]`); wrapped the apscheduler import in `options_etl/etl_class.py` with
+an actionable `ImportError`; regenerated `poetry.lock`; `poetry check` passes.
+Note: `requests`/`psutil` are declared for correctness now but are slated for removal by
+T8 (httpx) and T12 (cachetools).
+
+### T6b. Migrate pyproject to PEP 621 `[project]` tables (non-blocking)
+`poetry check` warns: deprecated license classifiers, deprecated `[tool.poetry.extras]`,
+and `[tool.poetry.dependencies]` without `[project.dependencies]`. Migrate dependencies
+and extras to the `[project]` table (`project.dependencies`,
+`project.optional-dependencies`, `project.license`). Cosmetic/format-only; defer until
+after the P0/P1 functional fixes land.
+**Done (2026-06-13):** moved runtime deps to `[project.dependencies]` (PEP 508 specs),
+the `etl` extra to `[project.optional-dependencies]`, dropped the deprecated GPL
+license classifier (kept SPDX `license = "GPL-3.0-or-later"`). `[tool.poetry.dependencies]`
+keeps only `python`; dev/test stay Poetry groups. `poetry lock`; `poetry check` → All set!
+
 ## P1 — Security
 
 ### T7. Treat the local Telegram token as exposed; add `test.env.example`
@@ -59,6 +105,11 @@ gitignored and the token is not in git history, but it should be revoked via Bot
 and replaced. Add a committed `test.env.example` (variable names, no values) and make
 `DATA_PATH` default to a repo-relative path — the current absolute
 `/home/akumidv/...` path breaks tests on any other machine.
+**Done (2026-06-13, by user):** `DATA_PATH` repointed to the working tree; full suite
+22 failed/71 err → 12 failed/114 passed/21 err. Token lives only in gitignored
+`test.env` (not committed, not in history) — left as-is per owner. Remaining failures are
+T11 (live network) / T19 (unimplemented chain load), not `DATA_PATH`. `test.env.example`
+still worth adding for onboarding (optional).
 
 ### T8. Harden `TelegramMessanger` (`messanger/telegram.py`)
 - Switch from `requests` to `httpx` (already a core dependency).
@@ -68,6 +119,12 @@ and replaced. Add a committed `test.env.example` (variable names, no values) and
   `ConnectionError`/`Timeout` are caught.
 - `parse_mode='Markdown'` with unescaped report text makes sends fail on special
   characters — escape or send plain text. Fix the `[ERROR}` typo.
+**Done (2026-06-13):** rewrote on `httpx` (dropped `requests` dep); token never logged
+(`logger.error`, not `.exception`, no URL in messages); `raise_for_status` + typed
+`httpx` handling; `parse_mode='MarkdownV2'` (configurable) + new `escape_markdown_v2()`
+helper for callers to escape *data* (markup stays in report templates — T-followup: ETL
+`_report` should escape interpolated asset names/errors); removed the meaningless VK
+`random_id`; fixed the `[ERROR}` typo. `requests` removed from deps.
 
 ### T9. Validate path-building inputs (path traversal)
 `asset_code` / `asset_name` / `exchange_code` are interpolated into filesystem paths in
@@ -75,6 +132,28 @@ and replaced. Add a committed `test.env.example` (variable names, no values) and
 `EtlOptions.get_updates_folder` without validation — a crafted name containing `../`
 escapes the data root. Add a shared validator (allowlist, e.g.
 `^[A-Za-z0-9._-]+$`, reject `..`) applied in both provider and ETL layers.
+**Done (2026-06-13):** added `options_lib/normalization/path_safety.py`
+(`validate_path_segment`, allowlist `^[A-Za-z0-9._-]+$`, rejects `.`/`..`/separators/
+empty). Applied at: `AbstractFileProvider.__init__` (exchange_code),
+`_get_history_folder` (asset_code), `EtlOptions.get_updates_folder` (asset_name),
+`EtlHistory.__init__` (exchange_code). Tests in `path_safety_test.py`; valid codes
+(BTC, ETH_USDC, …) still pass.
+
+### T8b. Drop `chart-studio` dependency (dead, pulls in `requests`)
+`chart_studio` is never imported — all charting uses `plotly` directly (now a declared
+dep). `chart-studio` is the only **hard** (non-optional) thing dragging `requests` into
+the dependency tree (pandas does NOT require requests). Remove `chart-studio` from
+`[project.dependencies]`; verify plotly rendering still works (offline `iplot`,
+`graph_objects`). After this, `requests` leaves the runtime tree entirely, which
+retroactively justifies the T8 httpx switch. P1/P2.
+**Done (2026-06-13):** removed `chart-studio` from deps (never imported; plotly is
+self-contained and does not require it), bumped `plotly` to `>=5.24,<7` (installed 6.3),
+dropped the stale `chart_studio` code comment. `poetry lock` — `requests` now appears
+only in the `dev` group, gone from runtime. Also fixed the T1b tail in
+`tests/conftest.py` (`load_option_history`→`load_options_history`, `symbol=`→
+`asset_code=`, `option_columns`→`options_columns`) — unblocked chart/analytic fixtures.
+Note: 2 `risk_payoff` failures remain (`RISK_PNL_PREMIUM` column not produced by
+`chain_payoff`) — pre-existing payoff-logic bug, unrelated; needs its own task.
 
 ### T10. Remove the misleading `signed` request parameter
 `RequestClass.request_api(..., signed=False)` accepts `signed` but implements no
@@ -82,6 +161,12 @@ signing — callers may believe authenticated calls work. Remove the parameter (
 endpoints only) or implement explicit signing per R7. Also: raise `RequestException`
 with `from err`, and add retry/backoff + HTTP 429 (rate-limit) handling for ETL-scale
 polling of Deribit/MOEX.
+**Done (2026-06-13):** `signed=True` now raises `NotImplementedError` (public endpoints
+only) instead of silently sending unauthenticated; `from err` added on the JSON-parse
+re-raise. `_request` retries 429/5xx + transport errors with exponential backoff
+(honors `Retry-After` on 429), `MAX_RETRIES=3`, then surfaces `APIException`/
+`RequestException`. Tests in `request_class_test.py` via `httpx.MockTransport`
+(sleep patched). Signing itself still deferred (R7).
 
 ## P2 — Robustness and code quality
 
@@ -108,6 +193,14 @@ ETL, exchanges and messengers log via `print(..., file=sys.stderr)`. Add a modul
 Remove the 4× duplicated imports (lines 4-21). Reconsider the silent
 `dropna(subset=[PRICE])` inside the `df_hist` getter — dropping rows during lazy load
 is surprising; make it explicit (parameter or documented enrichment step).
+
+### T14b. Fix `chain_payoff` missing `RISK_PNL_PREMIUM` column
+`tests/unit/options_lib/analytics/risk/risk_payoff_test.py` expects `chain_payoff` to
+produce a `risk_pnl_premium` (`RCl.RISK_PNL_PREMIUM`) column alongside `risk_pnl`, but
+the function only outputs `strike`/`risk_pnl` — 2 tests fail (`test_chain_pnl_risk_
+profile_long_call`, `test__calc_premium_profile_long_call[200]`). Either compute the
+premium-adjusted PnL column or update the contract/tests. Pre-existing logic bug,
+surfaced 2026-06-13; unrelated to the rename/packaging work.
 
 ### T15. Add CI
 No workflows exist (`.github/` has only `copilot-instructions.md`). Add a GitHub
@@ -186,9 +279,61 @@ Execution order (each step keeps `pytest`/`pylint` green):
 4. **T23.4** Add `pandera` dependency; define mixins + entity models with
    `alias=Col.*`; derive provider default column lists from the models.
 5. **T23.5** Wire boundary validation + config switch (env var) to disable in prod.
-6. **T23.6** Rename `exhchange_mark_price` → `exchange_mark_price`: change the `Col`
-   value, keep a read-shim (rename on parquet load), write a one-off migration script
-   for stored data.
+6. **T23.6** Adopt the price/IV column model (R4.2). Semantics flip: `PRICE`/`IV` are
+   now **our** normalized output (BS + smile fit + no-arb), not exchange data — so the
+   exchange's real values get an `exch_` prefix and there is **no** `fair_*` pair.
+   - `PRICE`/`IV` (`price`/`iv`): keep the names, but they become the project's model
+     output (the pricer/normalizer writes them; raw exchange data must no longer land
+     here directly).
+   - Add `EXCH_PRICE`/`EXCH_IV` (`exch_price`/`exch_iv`) — the venue's traded/quoted
+     price as received.
+   - Replace `EXCHANGE_MARK_PRICE`/`EXCHANGE_MARK_IV` (typo `exhchange_…`) with
+     `EXCH_MARK_PRICE`/`EXCH_MARK_IV` (`exch_mark_price`/`exch_mark_iv`) — Deribit
+     `mark_price` and MOEX `theorprice` both map here.
+   - Add `SETTLE_PRICE`/`SETTLE_IV` (`settle_price`/`settle_iv`), EOD-only, nullable
+     intraday. No `exch_` prefix.
+   - Rename `ORIGINAL_TIMESTAMP` (`original_timestamp`) → `EXCH_TIMESTAMP`
+     (`exch_timestamp`) — it is the venue's own timestamp (Deribit `creation_timestamp`,
+     MOEX `updatetime`), so it follows the `exch_` rule. `request_timestamp` and
+     `timestamp` are ours and keep their names. Repoint the deribit/moex rename maps and
+     the read-shim/migration below.
+   - Remove the planned `MARK_PRICE`/`MARK_IV` and `FAIR_PRICE`/`FAIR_IV` entries —
+     superseded.
+   - Repoint Deribit/MOEX normalizers (`'mark_price'`/`'theorprice'` →
+     `exch_mark_*`) and `COLUMNS_TO_CURRENCY`. Replace the `source_` prefix
+     (`SOURCE_PREFIX`) with a `_raw` **suffix**: the pre-currency-conversion value of
+     `<col>` is `<col>_raw` (`ask_raw`, `exch_mark_price_raw`, …). Stays narrow —
+     currency conversion only (R4.2 group 3). `AbstractExchange.SOURCE_PREFIX` and the
+     one site that applies it (`deribit.py:241`) change accordingly; `_raw` data in
+     existing parquet under `source_*` needs the migration script too.
+   - Read-shim on parquet load renaming old `exhchange_mark_price`/`exchange_mark_iv`
+     → `exch_mark_price`/`exch_mark_iv`; one-off migration script for stored data.
+   - **Caution:** before this lands, raw exchange price still flows into `price` via
+     `fill_option_price`. Splitting "what the exchange sent" (`exch_*`) from "our
+     model output" (`price`) requires the pricer to exist or `price` to be explicitly
+     sourced from `exch_price` until it does — decide the interim behavior so `price`
+     is never silently empty.
+
+### T23.7. Pluralize collection identifiers (R4.1)
+Bare singular `option`/`future` identifiers that denote collections: rename
+`BookData.option`/`.future` → `.options`/`.futures` (`exchange/_abstract_exchange.py`)
+and the `option = []` accumulator in `moex.py:304`. Audit that no bare singular
+`option`/`future` denotes a single entity (single-instrument attributes like
+`option_type` stay singular). Mechanical; do alongside T23.1.
+
+### T23.8. Align facade class names with the singular/plural rule (R4.1)
+Class names are inconsistent: the facade components operate on a *set* of options
+(`df_hist` is many rows) but are singular, while the dictionary classes for the same
+domain are plural. Rename to plural (public API change — do as one commit, update all
+imports + tests + docs):
+`OptionData`→`OptionsData`, `OptionChain`→`OptionsChain`,
+`OptionEnrichment`→`OptionsEnrichment`, `OptionAnalytic`→`OptionsAnalytic`
+(and `OptionAnalyticPrice`/`OptionAnalyticRisk`→`OptionsAnalytic…`).
+Keep `Option` singular — it is the single-instrument facade/entity. Already-correct:
+`OptionsColumns`, `OptionsLeg`, `OptionsType`, `OptionsStyle`, `OptionsPriceStatus`,
+`FuturesColumns`. Files: `option_class.py`/`option_data_class.py` keep their names
+(they host the singular `Option` entry point); a module about the options dataset uses
+the plural form.
 
 ### T24. Polars readiness (see R8)
 Polars is the strategic target engine. Preparatory steps while still on pandas:

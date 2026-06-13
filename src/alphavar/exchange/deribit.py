@@ -3,6 +3,7 @@ Deribit api provider
 """
 import datetime
 import re
+import sys
 import pandas as pd
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
@@ -258,7 +259,7 @@ class DeribitMarket:
                           'instrument_name': OCl.ASSET_CODE.nm,
                           'underlying_index': OCl.UNDERLYING_CODE.nm,
                           'underlying_price': OCl.UNDERLYING_PRICE.nm,
-                          'mark_price': OCl.EXCHANGE_PRICE.nm,
+                          'mark_price': OCl.EXCHANGE_MARK_PRICE.nm,
                           'mark_iv': OCl.EXCHANGE_MARK_IV.nm,
                           'ask_price': OCl.ASK.nm,
                           'bid_price': OCl.BID.nm,
@@ -297,6 +298,11 @@ class DeribitExchange(AbstractExchange):
         """
         symbols_df = self.market.get_instruments()
         return [symbol.upper() for symbol in symbols_df['price_index'].unique()]
+
+    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+                                timeframe: Timeframe) -> list[int]:
+        """Exchange API does not provide per-year history."""
+        raise NotImplementedError
 
     def get_options_assets_books_snapshot(self, asset_codes: list[str] | str | None = None) -> pd.DataFrame:
         """Get all option snapshot
@@ -364,34 +370,35 @@ class DeribitExchange(AbstractExchange):
                 job_results = {executor.submit(self.market.get_book_summary_by_currency, currency): currency
                                for currency in asset_codes}
                 for job_res in concurrent.futures.as_completed(job_results):
-                    book_summary_df: pd.DataFrame | Exception = job_res.result()
-                    if isinstance(book_summary_df, Exception):
-                        currency = job_results[job_res]
-                        print(f'[ERROR] for {currency} book summary: {book_summary_df}')
-                        raise book_summary_df
+                    currency = job_results[job_res]
+                    try:
+                        book_summary_df = job_res.result()
+                    except Exception as err:
+                        print(f'[ERROR] for {currency} book summary: {err}', file=sys.stderr)
+                        raise
                     books.append(book_summary_df)
             book_summary_df = pd.concat(books, ignore_index=True) if len(books) > 1 else books[0]
         return book_summary_df
 
-    def load_option_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_options_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load options history."""
         raise NotImplementedError
 
-    def load_future_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_futures_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load futures history"""
         raise NotImplementedError
 
-    def load_future_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_futures_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_option_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_option_chain(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_chain(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                           expiration_date: datetime.datetime | None = None,
                           timeframe: Timeframe = Timeframe.EOD,
                           columns: list | None = None

@@ -7,7 +7,7 @@ import pandas as pd
 from option_lib.entities import Timeframe
 from messanger import TelegramMessanger
 from exchange import DeribitExchange
-from options_etl import EtlDeribit
+from alphavar.options_etl import EtlDeribit
 
 
 if __name__ == '__main__':

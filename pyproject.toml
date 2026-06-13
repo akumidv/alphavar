@@ -13,13 +13,28 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
+dependencies = [
+    "pandas (>=2.2.3,<3)",
+    "numpy (>=1.26,<3)",
+    "python-dotenv (>=1.0.1,<2)",
+    "pydantic (>=2.10.5,<3)",
+    "plotly (>=5.24,<7)",
+    "pyarrow (>=21.0.0,<22)",
+    "httpx (>=0.28.1,<1)",
+    "matplotlib (>=3.9.0,<4)",
+    "cachetools (==6.2.0)",
+    "psutil (>=6.0,<7)",
+]
+
+[project.optional-dependencies]
+# Runtime extra for the ETL subpackage: `pip install 'alphavar[etl]'`.
+etl = ["apscheduler (>=3.11.0,<4)"]
 
 [project.urls]
 Homepage = "https://alphavar.dev"
@@ -31,21 +46,6 @@ packages = [{ include = "alphavar", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pandas = "^2.2.3"
-python-dotenv = "^1.0.1"
-pydantic = "^2.10.5"
-chart-studio = "^1.1.0"
-pyarrow = "^21.0.0"
-httpx = "^0.28.1"
-matplotlib = "^3.9.0"
-cachetools = "6.2.0"
-
-
-[tool.poetry.group.etl]
-optional = true
-
-[tool.poetry.group.etl.dependencies]
-apscheduler = "^3.11.0"
 
 [tool.poetry.group.dev]
 optional = true

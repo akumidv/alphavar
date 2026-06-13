@@ -14,15 +14,20 @@ class BinanceExchange(AbstractExchange):
     """Binance exchange api"""
     API_URL = 'https://api.binance.com'
 
-    def load_future_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_futures_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_option_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
     def get_assets_list(self, asset_kind: AssetKind) -> list[str]:
+        raise NotImplementedError
+
+    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+                                timeframe: Timeframe) -> list[int]:
+        """Exchange API does not provide per-year history."""
         raise NotImplementedError
 
     def get_options_assets_books_snapshot(self, asset_codes: list[str] | str | None = None) -> pd.DataFrame:
@@ -32,16 +37,16 @@ class BinanceExchange(AbstractExchange):
         """"""
         super().__init__(engine, ExchangeCode.BINANCE.name, self.API_URL)
 
-    def load_option_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_options_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load options history"""
         raise NotImplementedError
 
-    def load_future_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_futures_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load futures history"""
 
-    def load_option_chain(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_chain(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                           expiration_date: datetime.datetime | None = None,
                           timeframe: Timeframe = Timeframe.EOD,
                           columns: list | None = None) -> pd.DataFrame | None:

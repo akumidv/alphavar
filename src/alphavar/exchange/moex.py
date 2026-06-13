@@ -149,7 +149,7 @@ underlying_type               c
                                  'asset_type': OCl.UNDERLYING_TYPE.nm, 'secid': OCl.ASSET_CODE.nm}) \
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                           OCl.OPTION_TYPE.nm: {at.value: at.code for at in OptionsType}})
-            opt_df[OCl.ASSET_TYPE.nm] = AssetType.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
             return opt_df
         except APIException as err:
@@ -209,7 +209,7 @@ underlying_type               c
                                  'volume_contracts': OCl.VOLUME.nm, 'openposition': OCl.OPEN_INTEREST.nm}) \
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType}})
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm, OCl.ORIGINAL_TIMESTAMP.nm])
-            opt_df[OCl.ASSET_TYPE.nm] = AssetType.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
             return opt_df
         except APIException as err:
             if err.status_code == 422:
@@ -253,7 +253,7 @@ underlying_type               c
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                           OCl.OPTION_TYPE.nm: {at.value: at.code for at in OptionsType}})
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
-            opt_df[OCl.ASSET_TYPE.nm] = AssetType.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
             opt_df[OCl.SERIES_CODE.nm] = series_code
             return opt_df
 
@@ -311,7 +311,7 @@ underlying_type               c
 
         opt_df = pd.DataFrame(option) \
             .rename(columns={'secid': OCl.ASSET_CODE.nm, 'offer': OCl.ASK.nm,
-                             'theorprice': OCl.EXCHANGE_PRICE.nm, 'volatility': OCl.EXCHANGE_MARK_IV.nm}) \
+                             'theorprice': OCl.EXCHANGE_MARK_PRICE.nm, 'volatility': OCl.EXCHANGE_MARK_IV.nm}) \
             .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                       OCl.OPTION_TYPE.nm: {at.value: at.code for at in OptionsType}}) \
             .sort_values(by=[OCl.STRIKE.nm, OCl.OPTION_TYPE.nm]).reset_index(drop=True)
@@ -321,7 +321,7 @@ underlying_type               c
                 asset_type).code
         opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
         opt_df[OCl.BASE_CODE.nm] = asset_code
-        opt_df[OCl.ASSET_TYPE.nm] = AssetType.OPTIONS.code
+        opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
         opt_df[OCl.SERIES_CODE.nm] = series_code
         opt_df[OCl.OPTION_STYLE.nm] = OptionsStyle.AMERICAN.code if series_code.lower().endswith(
             'a') else OptionsStyle.EUROPEAN.code
@@ -331,7 +331,6 @@ underlying_type               c
         opt_df[OCl.TIMESTAMP.nm] = opt_df[OCl.REQUEST_TIMESTAMP.nm].copy()
         opt_df = normalize_timestamp(opt_df, columns=[OCl.TIMESTAMP.nm], freq='1s')
         opt_df[OCl.CURRENCY.nm] = Currency.RUB.code
-        opt_df[OCl.SETTLEMENT_IV.nm] = opt_df[OCl.EXCHANGE_MARK_IV.nm]
         # https://www.moex.com/s205
 
         opt_df = fill_option_price(opt_df)
@@ -363,6 +362,11 @@ class MoexExchange(AbstractExchange):
             print(f'[ERROR] asset options request for {asset_code}: {err}')
             return None
 
+    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+                                timeframe: Timeframe) -> list[int]:
+        """Exchange API does not provide per-year history."""
+        raise NotImplementedError
+
     def get_assets_list(self, asset_kind: AssetKind | str | None = None) -> list[str]:
         """       """
         asset_codes = self._get_asset_list_wo_options(asset_kind)
@@ -381,7 +385,7 @@ class MoexExchange(AbstractExchange):
 
     @ttl_cache.it
     def _get_asset_list_wo_options(self, asset_kind: AssetKind | str | None = None):
-        if asset_kind in [AssetType.OPTIONS, AssetType.OPTIONS.value]:
+        if asset_kind in [AssetKind.OPTIONS, AssetKind.OPTIONS.value]:
             asset_kind = None
         elif asset_kind in [AssetKind.FUTURES, AssetKind.FUTURES.value, MoexAssetType.FUTURES.value]:
             asset_kind = MoexAssetType.FUTURES
@@ -450,13 +454,13 @@ class MoexExchange(AbstractExchange):
         # print('\n[WARNING] for get_options_assets_books_snapshot used STATIC FILE')
         # return pd.read_parquet('./book_summary_df.parquet')
         if asset_codes is None:
-            asset_codes = self._get_asset_list_wo_options(AssetType.OPTIONS)
+            asset_codes = self._get_asset_list_wo_options(AssetKind.OPTIONS)
         elif isinstance(asset_codes, str):
             asset_codes = [asset_codes]
         asset_series_df = self._get_options_series(asset_codes)[[OCl.SERIES_CODE.nm, OCl.BASE_CODE.nm,
                                                                  OCl.UNDERLYING_CODE.nm, OCl.UNDERLYING_TYPE.nm,
                                                                  OCl.ORIGINAL_TIMESTAMP.nm]]
-        futures_asset_codes = list(asset_series_df[asset_series_df[OCl.UNDERLYING_TYPE.nm] == AssetType.FUTURES.code][
+        futures_asset_codes = list(asset_series_df[asset_series_df[OCl.UNDERLYING_TYPE.nm] == AssetKind.FUTURES.code][
                                        OCl.BASE_CODE.nm].unique())
         futures_asset_underlying_df = self._get_underlyings(futures_asset_codes)[
             [FCl.ASSET_CODE.nm, FCl.ASSET_TYPE.nm, FCl.EXPIRATION_DATE.nm]] \
@@ -490,25 +494,25 @@ class MoexExchange(AbstractExchange):
             .fillna(book_summary_df[OCl.BASE_CODE.nm])
         return book_summary_df
 
-    def load_option_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_options_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load options history."""
         raise NotImplementedError
 
-    def load_future_history(self, symbol: str, params: RequestParameters | None = None,
+    def load_futures_history(self, asset_code: str, params: RequestParameters | None = None,
                             columns: list | None = None) -> pd.DataFrame:
         """load futures history"""
         raise NotImplementedError
 
-    def load_future_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_futures_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_option_book(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_book(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def load_option_chain(self, symbol: str, settlement_datetime: datetime.datetime | None = None,
+    def load_options_chain(self, asset_code: str, settlement_datetime: datetime.datetime | None = None,
                           expiration_date: datetime.datetime | None = None,
                           timeframe: Timeframe = Timeframe.EOD,
                           columns: list | None = None

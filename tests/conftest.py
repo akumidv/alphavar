@@ -122,8 +122,8 @@ def fixture_provider_params(exchange_provider, option_symbol):
 def fixture_df_hist(option_symbol, exchange_provider, provider_params):
     """Option dataframe"""
     if _CACHE.get('DF_OPT') is None:
-        _CACHE['DF_OPT'] = exchange_provider.load_option_history(symbol=option_symbol, params=provider_params,
-                                                                 columns=exchange_provider.option_columns)
+        _CACHE['DF_OPT'] = exchange_provider.load_options_history(asset_code=option_symbol, params=provider_params,
+                                                                 columns=exchange_provider.options_columns)
     return _CACHE['DF_OPT'].copy()
 
 
@@ -131,8 +131,8 @@ def fixture_df_hist(option_symbol, exchange_provider, provider_params):
 def fixture_df_fut(option_symbol, exchange_provider, provider_params):
     """Future dataframe"""
     if _CACHE.get('DF_FUT') is None:
-        _CACHE['DF_FUT'] = exchange_provider.load_future_history(symbol=option_symbol, params=provider_params,
-                                                                 columns=exchange_provider.future_columns)
+        _CACHE['DF_FUT'] = exchange_provider.load_futures_history(asset_code=option_symbol, params=provider_params,
+                                                                 columns=exchange_provider.futures_columns)
     return _CACHE['DF_FUT'].copy()
 
 

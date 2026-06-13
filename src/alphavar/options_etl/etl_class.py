@@ -4,16 +4,21 @@ import os
 import sys
 import time
 from abc import ABC, abstractmethod
-from typing import NamedTuple
 from dataclasses import dataclass
 import threading
-from concurrent.futures import ThreadPoolExecutor
-import functools
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.base import STATE_STOPPED as JOBS_STATE_STOPPED
+try:
+    from apscheduler.schedulers.blocking import BlockingScheduler
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.schedulers.base import STATE_STOPPED as JOBS_STATE_STOPPED
+except ImportError as err:  # apscheduler is an optional extra
+    raise ImportError(
+        "alphavar ETL requires APScheduler. Install the 'etl' extra: "
+        "pip install 'alphavar[etl]' (or: poetry install --with etl)."
+    ) from err
 from alphavar.options_lib.dictionary import Timeframe, AssetKind
+from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.exchange import AbstractExchange
 from alphavar.messanger import AbstractMessanger, StandardMessanger
 
@@ -28,8 +33,9 @@ class AssetBookData:
     spot: pd.DataFrame | None
 
 
-class SaveTask(NamedTuple):
-    """Save task date"""
+@dataclass
+class SaveTask:
+    """Save task data. Mutable: ``df`` is cleared after a successful save to free memory."""
     store_path: str
     df: pd.DataFrame | None
 
@@ -39,19 +45,22 @@ class EtlOptions(ABC):
     TASKS_LIMIT = 4
     SAVE_TASKS_LIMIT = 2
     HOST_NAME = os.uname()[1]
-    _save_tasks: list[SaveTask] = []
-    _save_tasks_update_lock = threading.Lock()
-    _get_data_lock = threading.Lock()
-    _save_data_lock = threading.Lock()
+    # Instance state (initialized in __init__); declared here only for typing.
+    # These MUST NOT be class attributes — they are mutable and would be shared
+    # across all EtlOptions instances (e.g. two exchanges in one process).
+    _save_tasks: list[SaveTask]
+    _save_tasks_update_lock: threading.Lock
+    _get_data_lock: threading.Lock
+    _save_data_lock: threading.Lock
     _asset_names: list[str] | str | None
     _heartbeat_message_interval: pd.Timedelta
     _heartbeat_last_message_time: pd.Timestamp
-    _number_of_requests: int = 0
-    _number_of_jobs: int = 0
-    _avg_job_time: float = 0.
-    _number_saved_files: int = 0
-    _messages: list = []
-    _messages_lock = threading.Lock()
+    _number_of_requests: int
+    _number_of_jobs: int
+    _avg_job_time: float
+    _number_saved_files: int
+    _messages: list
+    _messages_lock: threading.Lock
 
     def __init__(self, exchange: AbstractExchange, asset_names: list[str] | str | None, timeframe: Timeframe,
                  update_data_path: str, timeframe_cron: dict | str | None = None,
@@ -64,6 +73,17 @@ class EtlOptions(ABC):
             timeframe_cron: dict - cron format in dict like {'days': '*', hours: '*', minutes: '*/5'}.
 
         """
+        self._save_tasks = []
+        self._save_tasks_update_lock = threading.Lock()
+        self._get_data_lock = threading.Lock()
+        self._save_data_lock = threading.Lock()
+        self._messages = []
+        self._messages_lock = threading.Lock()
+        self._number_of_requests = 0
+        self._number_of_jobs = 0
+        self._avg_job_time = 0.
+        self._number_saved_files = 0
+
         self.exchange = exchange
         self._update_data_path = update_data_path
         self._asset_names = asset_names
@@ -139,6 +159,7 @@ class EtlOptions(ABC):
 
     def get_updates_folder(self, asset_name: str, asset_kind: AssetKind | str, timeframe: Timeframe) -> str:
         """Return path to folder where all update should be stored"""
+        validate_path_segment(asset_name, field='asset_name')
         return f'{self._update_data_path}/{self.exchange.exchange_code}/{asset_name}/' \
                f'{asset_kind if isinstance(asset_kind, str) else asset_kind.value}/{timeframe.value}'
 
@@ -233,13 +254,15 @@ class EtlOptions(ABC):
                                   f'{request_timestamp - self._last_request_timestamp}')
             if isinstance(self._asset_names, list):
                 with ThreadPoolExecutor(max_workers=self.TASKS_LIMIT) as executor:
-                    function_partial = functools.partial(self.get_symbols_books_snapshot,
-                                                         request_timestamp=request_timestamp)
-
-                    for asset_name, book_data in zip(self._asset_names,
-                                                     executor.map(function_partial, self._asset_names)):
-                        if isinstance(book_data, Exception):
-                            print(f'[ERROR] for {asset_name} book data: {book_data}')
+                    jobs = {executor.submit(self.get_symbols_books_snapshot, asset_name,
+                                            request_timestamp=request_timestamp): asset_name
+                            for asset_name in self._asset_names}
+                    for job in as_completed(jobs):
+                        asset_name = jobs[job]
+                        try:
+                            book_data = job.result()
+                        except Exception as err:  # one failing asset must not drop the rest
+                            self._add_message(f'[ERROR] for {asset_name} book data: {err}')
                             continue
                         self._save_timeframe_book_update(book_data)
                     self._number_of_requests += len(self._asset_names)
@@ -304,7 +327,12 @@ class EtlOptions(ABC):
                 tasks = self._save_tasks
                 self._save_tasks = []
                 with ThreadPoolExecutor(max_workers=self.SAVE_TASKS_LIMIT) as executor:
-                    executor.map(self._save_task_dataframe, tasks)
+                    jobs = [executor.submit(self._save_task_dataframe, task) for task in tasks]
+                    for job in as_completed(jobs):
+                        try:
+                            job.result()
+                        except Exception as err:  # surface save failures instead of swallowing them
+                            self._add_message(f'[ERROR] saving task failed: {err}')
                 self._number_saved_files += len(tasks)
                 del tasks
 

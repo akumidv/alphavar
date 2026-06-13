@@ -6,7 +6,7 @@ import os
 from option_lib.entities import Timeframe
 from messanger import TelegramMessanger
 from exchange import MoexExchange
-from options_etl import EtlMoex
+from alphavar.options_etl import EtlMoex
 
 
 if __name__ == '__main__':

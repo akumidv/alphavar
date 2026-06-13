@@ -11,6 +11,7 @@ import os
 import re
 from abc import ABC
 from alphavar.options_lib.dictionary import Timeframe, AssetKind
+from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.provider._abstract_provider_class import AbstractProvider
 
 
@@ -20,6 +21,7 @@ class AbstractFileProvider(AbstractProvider, ABC):
     exchange_data_path: str
 
     def __init__(self, exchange_code: str, data_path: str) -> None:
+        validate_path_segment(exchange_code, field='exchange_code')
         exchange_data_path: str = os.path.normpath(
             os.path.abspath(os.path.join(data_path, exchange_code))
         )
@@ -42,6 +44,7 @@ class AbstractFileProvider(AbstractProvider, ABC):
     def _get_history_folder(
         self, asset_code: str, asset_kind: AssetKind | str, timeframe: Timeframe | str
     ) -> str:
+        validate_path_segment(asset_code, field='asset_code')
         asset_kind_value: str = (
             asset_kind if isinstance(asset_kind, str) else asset_kind.value
         )

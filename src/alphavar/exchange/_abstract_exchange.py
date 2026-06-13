@@ -1,5 +1,6 @@
 """Abstract exchange class module"""
 
+import time
 from abc import ABC, abstractmethod
 from typing import NamedTuple
 import httpx
@@ -25,6 +26,11 @@ class RequestClass:
         'Accept': 'application/json',
         'User-Agent': 'Option Library Client',
     }
+    # Retry policy for transient failures (rate limiting and server errors).
+    MAX_RETRIES: int = 3
+    BACKOFF_BASE_SEC: float = 1.0
+    BACKOFF_MAX_SEC: float = 30.0
+    RETRY_STATUS: frozenset = frozenset({429, 500, 502, 503, 504})
 
     def __init__(self, api_url, http_params: dict | None = None):
         self.api_url = api_url[:-1] if api_url[-1] == '/' else api_url
@@ -36,27 +42,57 @@ class RequestClass:
         self.timestamp_offset = 0
 
     def request_api(self, endpoint_path: str, signed: bool = False, **kwargs):
-        """Main request method """
-        api_url = self._create_api_uri(endpoint_path)
-        return self._request(api_url, signed, **kwargs)
+        """Main request method.
 
-    def _request(self, request_url, signed: bool, **kwargs):
-        response = self.session.get(request_url, **kwargs)
-        return self._handle_response(response)
+        ``signed`` (authenticated/private endpoints) is not implemented — only public
+        endpoints are supported. Passing ``signed=True`` raises rather than silently
+        sending an unauthenticated request.
+        """
+        if signed:
+            raise NotImplementedError('Signed (authenticated) requests are not supported; '
+                                      'only public endpoints are available.')
+        api_url = self._create_api_uri(endpoint_path)
+        return self._request(api_url, **kwargs)
+
+    def _request(self, request_url, **kwargs):
+        last_retryable: httpx.Response | httpx.HTTPError | None = None
+        for attempt in range(self.MAX_RETRIES + 1):
+            try:
+                response = self.session.get(request_url, **kwargs)
+            except (httpx.TransportError, httpx.TimeoutException) as err:
+                last_retryable = err
+            else:
+                if response.status_code not in self.RETRY_STATUS:
+                    return self._handle_response(response)
+                last_retryable = response
+            if attempt < self.MAX_RETRIES:
+                time.sleep(self._retry_delay(attempt, last_retryable))
+        # Retries exhausted — surface the last failure.
+        if isinstance(last_retryable, httpx.Response):
+            return self._handle_response(last_retryable)
+        raise RequestException(f'Request failed after {self.MAX_RETRIES} retries: '
+                               f'{type(last_retryable).__name__}') from last_retryable
+
+    def _retry_delay(self, attempt: int, last: 'httpx.Response | httpx.HTTPError | None') -> float:
+        """Exponential backoff, honoring a 429 ``Retry-After`` header when present."""
+        if isinstance(last, httpx.Response) and last.status_code == 429:
+            retry_after = last.headers.get('Retry-After')
+            if retry_after and retry_after.isdigit():
+                return min(float(retry_after), self.BACKOFF_MAX_SEC)
+        return min(self.BACKOFF_BASE_SEC * (2 ** attempt), self.BACKOFF_MAX_SEC)
 
     @staticmethod
     def _handle_response(response: httpx.Response):
-        """Internal helper for handling API responses from the Binance server.
+        """Internal helper for handling API responses.
         Raises the appropriate exceptions when necessary; otherwise, returns the
-        response.
+        parsed JSON body.
         """
         if not str(response.status_code).startswith('2'):
             raise APIException(response, response.status_code, response.text)
         try:
             return response.json()
         except ValueError as err:
-            txt = response.text
-            raise RequestException(f'Invalid Response: {err}\n{txt}: ')
+            raise RequestException(f'Invalid Response: {err}\n{response.text}: ') from err
 
     def _create_api_uri(self, endpoint_path: str) -> str:
         endpoint_path = endpoint_path if endpoint_path[0] != '/' else endpoint_path[1:]

@@ -4,7 +4,6 @@ import pandas as pd
 from alphavar.options_etl.etl_class import EtlOptions, AssetBookData, SaveTask
 from alphavar.options_lib.dictionary import (
     AssetKind,
-    AssetType,
     Timeframe,
     OptionsColumns as OCl,
     FuturesColumns as FCl,
@@ -51,7 +50,7 @@ class EtlMoex(EtlOptions):
             drop=True)
         future_columns = [OCl.TIMESTAMP.nm, OCl.BASE_CODE.nm, OCl.UNDERLYING_CODE.nm, OCl.UNDERLYING_TYPE.nm,
                           OCl.UNDERLYING_EXPIRATION_DATE.nm, OCl.UNDERLYING_PRICE.nm]
-        futures_mask = book_summary_df[OCl.UNDERLYING_TYPE.nm] == AssetType.FUTURES.code
+        futures_mask = book_summary_df[OCl.UNDERLYING_TYPE.nm] == AssetKind.FUTURES.code
         future_df = book_summary_df[futures_mask][future_columns] \
             .drop_duplicates(subset=[OCl.UNDERLYING_CODE.nm]) \
             .rename(columns={OCl.UNDERLYING_CODE.nm: FCl.ASSET_CODE.nm, OCl.UNDERLYING_TYPE.nm: FCl.ASSET_TYPE.nm,

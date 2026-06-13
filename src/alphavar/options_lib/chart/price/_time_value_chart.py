@@ -1,6 +1,6 @@
 """Plotly implementation for time value charts"""
 import pandas as pd
-from plotly import graph_objs as go  # Check for version: from chart_studio import plotly
+from plotly import graph_objs as go
 from alphavar.options_lib.dictionary import OptionsColumns as OCl
 
 

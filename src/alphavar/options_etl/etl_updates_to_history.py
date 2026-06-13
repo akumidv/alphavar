@@ -14,6 +14,7 @@ from collections import OrderedDict
 import pandas as pd
 from alphavar.options_lib.dictionary import Timeframe, AssetKind, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
 from alphavar.options_lib.normalization.timeframe_resample import DEFAULT_RESAMPLE_MODEL, convert_to_timeframe
+from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.provider import PandasLocalFileProvider, RequestParameters
 from alphavar.exchange.exchange_entities import ExchangeCode
 from alphavar.exchange import AbstractExchange
@@ -37,6 +38,7 @@ class EtlHistory:
                  symbols: list[str] | None = None, asset_kinds: list[AssetKind] | None = None,
                  params: dict[str] | None = None):
         self._exchange_code: str = exchange_code if isinstance(exchange_code, str) else exchange_code.name
+        validate_path_segment(self._exchange_code, field='exchange_code')
         exchange_data_path = os.path.normpath(os.path.abspath(os.path.join(history_path, self._exchange_code)))
         os.makedirs(exchange_data_path, exist_ok=True)
         self.history_path: str = os.path.normpath(os.path.abspath(history_path))
@@ -193,10 +195,10 @@ class EtlHistory:
         year_symbols = random.sample(year_symbols, max_symbols) if len(year_symbols) > max_symbols else year_symbols
         for symbol in year_symbols:
             if asset_kind.value == AssetKind.FUTURES.value:  # Use value there because it can be DeribitAssetKind and they will be different but the equal values
-                df = self.provider.load_future_history(symbol, request_parma, columns=[FCl.TIMESTAMP.nm])
+                df = self.provider.load_futures_history(symbol, request_parma, columns=[FCl.TIMESTAMP.nm])
                 start_ts_new = df[FCl.TIMESTAMP.nm].max()
             elif asset_kind.value == AssetKind.OPTIONS.value:
-                df = self.provider.load_option_history(symbol, request_parma, columns=[OCl.TIMESTAMP.nm])
+                df = self.provider.load_options_history(symbol, request_parma, columns=[OCl.TIMESTAMP.nm])
                 start_ts_new = df[OCl.TIMESTAMP.nm].max()
             else:
                 raise TypeError(f'{asset_kind} Is not supported')
@@ -292,7 +294,7 @@ class EtlHistory:
     @staticmethod
     def _update_resample_model_for_source(resample_model: dict) -> dict:
         prefix = AbstractExchange.SOURCE_PREFIX
-        list_of_source_columns = [OCl.PRICE.nm, OCl.LAST.nm, OCl.ASK.nm, OCl.BID.nm, OCl.EXCHANGE_PRICE.nm]
+        list_of_source_columns = [OCl.PRICE.nm, OCl.LAST.nm, OCl.ASK.nm, OCl.BID.nm, OCl.EXCHANGE_MARK_PRICE.nm]
         for col in list_of_source_columns:
             source_col = f'{prefix}_{col}'
             if col in resample_model and source_col not in resample_model:
