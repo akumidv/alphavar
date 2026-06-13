@@ -19,3 +19,4 @@ node_modules/
 .next/
 docs/phd/
 .gitmodules
+*.svg
