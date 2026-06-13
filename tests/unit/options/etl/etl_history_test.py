@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from alphavar.options_lib.dictionary import Timeframe, AssetKind
 from alphavar.options_lib.dictionary import OptionsColumns as OCl
-from alphavar.options_etl.etl_updates_to_history import EtlHistory
+from alphavar.options.etl.etl_updates_to_history import EtlHistory
 from alphavar.exchange.exchange_entities import ExchangeCode
 
 

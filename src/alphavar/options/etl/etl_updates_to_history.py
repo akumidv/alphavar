@@ -280,7 +280,7 @@ class EtlHistory:
 
     @staticmethod
     def _update_symbols_timeframes_fn(updates_files: dict, symbol: str, asset_kind: str, timeframe: str,
-                                      root_path: str, files: list[str] | Generator[str] | filter) -> dict:
+                                      root_path: str, files: list[str] | Generator[str, None, None] | filter) -> dict:
         if symbol not in updates_files:
             updates_files[symbol] = {}
         if asset_kind not in updates_files[symbol]:

@@ -3,7 +3,7 @@
 """
 import os
 from option_lib.entities import Timeframe
-from alphavar.options_etl.etl_updates_to_history import EtlHistory
+from alphavar.options.etl.etl_updates_to_history import EtlHistory
 
 from exchange.exchange_entities import ExchangeCode
 

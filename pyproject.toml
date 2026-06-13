@@ -7,68 +7,63 @@ authors = [
 description = "alphavar (alpha + VaR) — a Python library for risk-aware options and futures analysis and visualization"
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 keywords = ["options", "futures", "derivatives", "volatility", "value-at-risk", "trading", "quant"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
-    "pandas (>=2.2.3,<3)",
-    "numpy (>=2.1,<3)",
-    "pandera (>=0.20,<1)",
-    "python-dotenv (>=1.0.1,<2)",
-    "pydantic (>=2.10.5,<3)",
-    "plotly (>=5.24,<7)",
-    "pyarrow (>=21.0.0,<22)",
-    "httpx (>=0.28.1,<1)",
-    "matplotlib (>=3.9.0,<4)",
-    "cachetools (==6.2.0)",
-    "psutil (>=6.0,<7)",
+    "pandas>=2.2.3,<3",
+    "numpy>=2.1,<3",
+    "pandera>=0.20,<1",
+    "python-dotenv>=1.0.1,<2",
+    "pydantic>=2.10.5,<3",
+    "plotly>=5.24,<7",
+    "pyarrow>=21.0.0,<25",
+    "httpx>=0.28.1,<1",
+    "matplotlib>=3.9.0,<4",
+    "cachetools==6.2.0",
+    "psutil>=6.0,<7",
 ]
 
 [project.optional-dependencies]
-# Runtime extra for the ETL subpackage: `pip install 'alphavar[etl]'`.
-etl = ["apscheduler (>=3.11.0,<4)"]
+# Runtime extra for the ETL subpackage: `uv sync --extra etl` / `pip install 'alphavar[etl]'`.
+etl = ["apscheduler>=3.11.0,<4"]
 
 [project.urls]
 Homepage = "https://alphavar.dev"
 Repository = "https://github.com/akumidv/alphavar"
 Documentation = "https://alphavar.dev"
 
-[tool.poetry]
-packages = [{ include = "alphavar", from = "src" }]
+# Development dependency groups (PEP 735). `uv sync` installs the default-groups below.
+[dependency-groups]
+dev = [
+    "setuptools>=80.9.0,<81",
+    "jupyter>=1.1.1,<2",
+    "pylint>=3.3.4,<4",
+    "twine>=6.0.0,<7",
+]
+test = [
+    "pytest>=8.3.5,<9",
+    "pytest-asyncio>=1.2.0,<2",
+    "pytest-dotenv>=0.5.2,<0.6",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-setuptools = "^80.9.0"
-jupyter = "^1.1.1"
-pylint = "^3.3.4"
-twine = "^6.0.0"
-
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-asyncio = "^1.2.0"
-pytest-dotenv = "^0.5.2"
-
+[tool.uv]
+default-groups = ["dev", "test"]
 
 [build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alphavar"]
 
 [tool.pytest.ini_options]
 pythonpath = [

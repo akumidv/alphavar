@@ -22,17 +22,22 @@ them in any change.
 
 ## Development Environment Setup
 
-Install dependencies using Poetry (required for this project):
+Dependencies are managed with [uv](https://docs.astral.sh/uv/). Create the virtualenv
+and install everything (runtime + `etl` extra + `dev`/`test` groups) with:
 
 ```bash
-poetry install --with etl,dev,test
+uv sync --all-extras
 ```
 
 This installs:
 - Core dependencies (pandas, pydantic, httpx, matplotlib, etc.)
-- ETL dependencies (apscheduler)
-- Development dependencies (jupyter, pylint)
-- Test dependencies (pytest, pytest-asyncio)
+- ETL extra `etl` (apscheduler) — runtime, exposed as `alphavar[etl]`
+- Development group `dev` (jupyter, pylint, twine)
+- Test group `test` (pytest, pytest-asyncio, pytest-dotenv)
+
+The `dev` and `test` groups are in `[tool.uv].default-groups`, so a plain `uv sync`
+already includes them; `--all-extras` adds the runtime `etl` extra. Run project
+commands through the environment with `uv run <cmd>` (no manual activation needed).
 
 ## Core Architecture
 
@@ -50,30 +55,36 @@ The library follows a provider pattern: data sources plug in through the
 
 ## Source Code Structure
 
-- `src/options_lib/` — core library functionality:
-  - `entities/` — data entities and enums
-  - `chain/` — option chain processing
-  - `normalization/` — data normalization utilities
-- `src/alphavar/` — main assembler components (the `Option` facade)
-- `src/exchange/` — exchange-specific implementations
-- `src/provider/` — data provider abstractions
-- `src/options_etl/` — ETL processes for options data
+Everything lives under the single `src/alphavar/` package:
+
+- `src/alphavar/` — the `Option` facade and entry-point classes (`option_class.py`,
+  `option_data_class.py`)
+- `src/alphavar/core/` — domain-neutral base: dictionary registry, schema migration
+- `src/alphavar/options/` — options/futures domain (R0 target home):
+  - `dictionary/`, `schemas/` — column registry + pandera models
+  - `etl/` — ETL processes for options data (`EtlOptions`, `EtlDeribit`, `EtlMoex`,
+    `EtlHistory`)
+- `src/alphavar/options_lib/` — pure, stateless logic (entities, chain, normalization,
+  analytics) — being migrated into `options/`
+- `src/alphavar/exchange/` — exchange-specific implementations
+- `src/alphavar/provider/` — data provider abstractions
+- `src/alphavar/messanger/` — notification channels
 
 ## Common Development Commands
 
 **Run tests:**
 ```bash
-pytest
+uv run pytest
 ```
 
 **Run linting:**
 ```bash
-pylint src/
+uv run pylint src/
 ```
 
 **Start Jupyter for demos:**
 ```bash
-jupyter notebook
+uv run jupyter notebook
 ```
 
 **User documentation (Next.js site) development:**

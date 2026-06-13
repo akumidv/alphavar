@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl
 
-from alphavar.options_etl.deribit_etl import EtlDeribit, DeribitAssetBookData
+from alphavar.options.etl.deribit_etl import EtlDeribit, DeribitAssetBookData
 from alphavar.exchange import DeribitExchange
 
 

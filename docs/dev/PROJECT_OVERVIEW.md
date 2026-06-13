@@ -21,7 +21,7 @@ It provides a single interface for:
 - visualization (Plotly/matplotlib);
 - ETL processes for accumulating historical snapshots of quotes.
 
-**Language:** Python `^3.11`. **Package manager:** Poetry (`package-mode = false`).
+**Language:** Python `>=3.14`. **Package manager:** [uv](https://docs.astral.sh/uv/) (build backend: hatchling).
 
 ---
 
@@ -64,7 +64,7 @@ alphavar/
 │   │   ├── exchange_fabric.py       # ExchangeFabric (factory)
 │   │   └── exchange_provider_factory.py
 │   │
-│   ├── options_etl/         # ETL — accumulating quote snapshots
+│   ├── options/etl/         # ETL — accumulating quote snapshots
 │   │   ├── etl_class.py             # EtlOptions (base, APScheduler)
 │   │   ├── deribit_etl.py           # EtlDeribit
 │   │   ├── moex_etl.py              # EtlMoex
@@ -245,7 +245,7 @@ class RequestParameters(BaseModel):
 
 ---
 
-## 7. ETL (`options_etl/`)
+## 7. ETL (`options/etl/`)
 
 Accumulation of quote snapshots on a schedule (APScheduler).
 
@@ -272,7 +272,7 @@ Accumulation of quote snapshots on a schedule (APScheduler).
 - `dev`: `setuptools`, `jupyter`, `pylint`
 - `test`: `pytest`, `pytest-asyncio`, `pytest-dotenv`
 
-Install: `poetry install --with etl,dev,test`
+Install: `uv sync --all-extras`
 
 ---
 
@@ -309,7 +309,7 @@ pylint (`max-line-length=120`, `max-args=8`, `max-positional-arguments=6`).
 | Add a computed column | `options_lib/enrichment/` + `dictionary/_dataframe_columns.py` | a new function + an entry in `OptionsColumns` and, if needed, in `OPTION_COLUMNS_DEPENDENCIES`; wire it into `OptionEnrichment` |
 | New analytics | `options_lib/analytic/` + a wrapper in `alphavar/analytic/` | a pure function over a DataFrame + a facade method |
 | New chart type | `options_lib/chart/` + `alphavar/chart/` | data preparation + a render method |
-| New ETL source | `options_etl/` | a subclass of `EtlOptions` |
+| New ETL source | `options/etl/` | a subclass of `EtlOptions` |
 | Notification channel | `messanger/` | a subclass of `AbstractMessanger` |
 
 **Code conventions:**

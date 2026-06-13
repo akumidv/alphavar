@@ -28,10 +28,10 @@ The library follows a provider pattern: different data sources plug in through t
 
 ## Quick start
 
-Install all dependencies for development and testing with Poetry:
+Install all dependencies for development and testing with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-poetry install --with etl,dev,test
+uv sync --all-extras
 ```
 
 ```python

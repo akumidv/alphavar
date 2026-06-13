@@ -7,7 +7,7 @@ from cachetools import TTLCache, cached
 
 from alphavar.exchange import DeribitExchange
 from alphavar.options_lib.dictionary import AssetKind, Timeframe
-from alphavar.options_etl.etl_class import AssetBookData, EtlOptions
+from alphavar.options.etl.etl_class import AssetBookData, EtlOptions
 
 
 class TestEtl(EtlOptions):

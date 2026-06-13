@@ -378,17 +378,17 @@ first-class, queryable thing rather than redundant column noise.
 
 ## R5. Packaging
 
-- Single distributable package: `alphavar`, rooted at `src/alphavar/` (Poetry,
-  `packages = [{ include = "alphavar", from = "src" }]`). No second top-level package
-  may live under `src/`.
+- Single distributable package: `alphavar`, rooted at `src/alphavar/` (uv + hatchling,
+  `[tool.hatch.build.targets.wheel] packages = ["src/alphavar"]`). No second top-level
+  package may live under `src/`.
 - Every `import` used by shipped code must be a declared dependency (direct, not
   transitive). Subpackages shipped in the wheel that need optional dependencies
-  (e.g. `options_etl` → `apscheduler`) must map to a pip **extra**, and their imports
+  (e.g. `options/etl` → `apscheduler`) must map to a pip **extra**, and their imports
   must fail with an actionable error message.
 
 ## R6. ETL isolation
 
-- ETL (`alphavar/options_etl/`) consumes exchanges through the same
+- ETL (`alphavar/options/etl/`) consumes exchanges through the same
   `AbstractExchange` interface; it never talks to HTTP endpoints directly.
 - ETL writes update snapshots under
   `{update_data_path}/{EXCHANGE}/{ASSET}/{asset_kind}/{timeframe}/...parquet`; history

@@ -2,7 +2,7 @@
 import datetime
 import pandas as pd
 from dataclasses import dataclass
-from alphavar.options_etl.etl_class import EtlOptions, AssetBookData, SaveTask
+from alphavar.options.etl.etl_class import EtlOptions, AssetBookData, SaveTask
 from alphavar.options_lib.dictionary import (
     Timeframe,
     OptionsColumns as OCl,

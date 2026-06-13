@@ -5,7 +5,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 
 from alphavar.options_lib.dictionary import Timeframe
-from alphavar.options_etl.etl_class import AssetBookData, SaveTask
+from alphavar.options.etl.etl_class import AssetBookData, SaveTask
 
 
 def test_add_save_task_to_background_thread_safe(etl_options):
