@@ -16,8 +16,7 @@ For a deep dive into architecture, modules, and extension points, see
 
 **Binding architecture invariants** (layering, provider pattern, security rules) live in
 [docs/dev/ARCHITECTURE_REQUIREMENTS.md](docs/dev/ARCHITECTURE_REQUIREMENTS.md) — preserve
-them in any change. The remediation backlog from the latest review is in
-[docs/dev/TASKS.md](docs/dev/TASKS.md).
+them in any change.
 
 > **Status:** early / active development. The API may change.
 

@@ -2,9 +2,43 @@
 
 > **Status: binding.** This document captures the current architecture as a set of
 > requirements. Any change (human or AI-agent) MUST preserve these invariants unless the
-> document itself is explicitly revised first. Companion documents:
-> [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) (descriptive overview) and
-> [TASKS.md](TASKS.md) (remediation backlog).
+> document itself is explicitly revised first. Companion document:
+> [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) (descriptive overview). The remediation
+> backlog is maintained outside this repository, alongside `ALPHAVAR_NAMING.md`.
+
+## R0. Package layout: domain-first, then functional (target)
+
+`alphavar` will grow beyond options/futures (equities, bonds, …). The top-level split is
+therefore **by domain**, and *within* a domain by function (layer). A thin domain-neutral
+base sits under the domains. This is the target layout; the current tree
+(`options_lib`, `options_etl`, plus functional packages) migrates toward it.
+
+```
+alphavar/
+  core/        # domain-NEUTRAL base: shared dictionary registry, normalization,
+               #   base entities, schema mixins, path-safety. No domain math.
+  io/          # data infrastructure, domain-neutral: provider/, exchange/, messanger/
+  options/     # DOMAIN: options + futures (today's options_lib + options_etl, merged).
+               #   Inside, by function: dictionary/ enrichment/ chain/ analytic/ chart/
+               #   etl/ entities/ — plus the facade (Option and its components).
+  equity/      # future domain (own math)
+  bond/        # future domain
+```
+
+- **Why domain-first:** the math of options ≠ equities ≠ bonds; keeping each domain's
+  logic, ETL and analytics together makes "add a new asset class = add a package"
+  true, and a domain is visible from the tree (screaming architecture).
+- **What stays neutral (not in a domain):** `core/` (shared identity/dictionary,
+  normalization, base entities — see R4.x; "core + domain extensions") and `io/`
+  (an exchange returns options, futures, and tomorrow equities — it is infrastructure,
+  not a domain).
+- **Naming:** the first domain keeps the recognizable name `options` (not
+  `derivatives`), package `alphavar.options`. This aligns with the family pattern
+  recorded in `ALPHAVAR_NAMING.md` (`alphavar.<domain>`). The legacy `options_lib` /
+  `options_etl` are the seed of this domain package, just named by the narrow concretes;
+  they fold into `alphavar.options` (logic) and `alphavar.options.etl`.
+- The three-layer separation (R1) holds **inside each domain**: facade → pure logic →
+  data (via injected provider from `io/`).
 
 ## R1. Three-layer separation (core invariant)
 
@@ -40,6 +74,27 @@ Dependency direction is one-way: facade → logic → (data via injected provide
   instantiates providers itself.
 - Request scoping goes through the `RequestParameters` Pydantic model — no ad-hoc
   parameter dicts.
+
+### R2.1 Uniform exchange interface — internal identity in, venue symbol stays inside
+
+The public provider/exchange API speaks the library's **internal identity**, never the
+venue's. Every method takes `asset_code` (+ typed scope: expiration, strike, type,
+`RequestParameters`) — **not** an exchange `exch_symbol`. All exchanges are therefore
+called **identically**; swapping Deribit for MOEX changes no call site.
+
+- Building the venue request symbol from `asset_code` (and scope) is the **exchange
+  class's** responsibility, done internally. The transform `asset_code → exch_symbol`
+  (e.g. `BTC` + 30APR25 + 100000 + C → `BTC-30APR25-100000-C`) lives in the concrete
+  exchange, nowhere else.
+- On the way back, the exchange parses the venue response into the canonical columns
+  (R4.1.1) — `asset_code` plus typed fields — and may keep `exch_symbol` as the optional
+  raw audit column. Callers never see or pass a venue symbol.
+- No public provider/exchange method accepts a `symbol`/`exch_symbol` parameter. (After
+  T1b they take `asset_code`; this requirement keeps it that way.)
+
+Rationale: a venue symbol is an exchange-specific encoding; leaking it into the shared
+API would couple callers to one venue's format and break the "new data source =
+new provider, no caller changes" rule.
 
 ## R3. Facade composition
 
@@ -96,6 +151,35 @@ not just variables:
 Rule of thumb: *one contract* → `Option`/`Future` (singular); *the market, dataset,
 column group, or any collection* → `options`/`futures` (plural). When in doubt, match
 how exchanges and market-data APIs name it.
+
+### R4.1.1 Instrument identification: two-level model
+
+Two distinct identity concepts, deliberately different columns (the legacy `symbol`
+naming conflated them):
+
+| Concept | Column | Examples | Role |
+|---|---|---|---|
+| Underlying asset | `ASSET_CODE` (`asset_code`) | `BRN`, `BTC`, `AAPL` | The base asset a contract is written on. The **unifying key**: a future and an option on BRN share it. Short, stable; suitable for file/dir names. Present for every row. The library's own identity — exchange-neutral. |
+| Exchange instrument symbol | `EXCH_SYMBOL` (`exch_symbol`) | `BTC-30APR25-100000-C`, `BR-3.25`, `AAPL` | The venue's raw contract identifier (exchange-facing ticker). Encodes expiry/strike/right in a string. Prefixed `exch_` like all other raw venue data (R4.2). |
+
+This matches industry usage: *symbol/ticker* = exchange-facing instrument code;
+*asset* = the underlying. So `asset_code` ≠ `exch_symbol` — separate columns, not
+synonyms. (For a spot asset like `AAPL` the two coincide.) The legacy `symbol` /
+`exchange_symbol` naming is replaced by `exch_symbol` (and `asset_code` for the
+underlying).
+
+**`exch_symbol` is not part of the canonical parsed dataset.** Once a book is
+normalized, the contract is fully and compactly identified by typed columns
+`(asset_code, expiration_date, strike, option_type, timestamp)`. The raw `exch_symbol`
+string is then redundant and storage-expensive (a string per row). Keep it only:
+- in **raw book snapshots** (it is what the exchange sent; the source for parsing/debug);
+- as an **optional** audit column in parsed data, behind an ETL flag (like
+  `source_fields`) — never a required column.
+
+The mandatory row key for parsed options is
+`(asset_code, expiration_date, strike, option_type, timestamp)`; for futures
+`(asset_code, expiration_date, timestamp)`. `base_code`/`underlying_code` remain their
+own concepts (sub-asset / underlying contract), distinct from `asset_code`.
 
 ### R4.2 Price / IV column model
 
@@ -160,7 +244,137 @@ while explicit. Rationale: `price`/`iv` belong to the project (the value of the 
 is the normalization), so they get the unprefixed names; raw venue data is explicitly
 `exch_*`/`settle_*`; `mark` is the right domain term for an exchange estimate (vs
 settlement = official EOD price). The old single `exchange_mark_price` had a typo
-(`exhchange_…`) and conflated layers. Migration is covered in TASKS T23.6.
+(`exhchange_…`) and conflated layers. Migration is covered by the backlog (T23.6).
+
+### R4.3 Single entity registry — one name per concept, everywhere
+
+There is **one** registry of entity names (the column dictionary, `Col` in
+`core/dictionary/`). A concept has exactly one canonical name there, and that name is
+**the only** spelling used for it across the whole codebase — not just DataFrame
+columns:
+
+1. **DataFrame columns** — referenced only via the registry (`Col.STRIKE`), never as a
+   string literal. (Existing R4 rule, now part of the registry contract.)
+2. **Variables, parameters, attributes** — a variable holding one concept is named after
+   its registry key: `asset_code` (not `symbol`/`code`/`ac`), `exch_symbol`,
+   `expiration_date`. A collection is the plural (`asset_codes`). The function
+   parameter that receives a strike is `strike`, etc.
+3. **Function names that act on / produce a column** — encode the registry name of the
+   column they read or write:
+   - producing column `X` → `add_<x>` / `get_<x>` / `calc_<x>` (e.g. `add_intrinsic_value`
+     produces `Col.INTRINSIC_VALUE`; `get_price_status` returns `Col.PRICE_STATUS`).
+   - the verb says the effect (`add_` mutates/returns the frame with the column, `get_`
+     returns the series/value, `calc_` is the pure computation), the noun is the exact
+     registry name.
+   - a function keyed to a concept must not drift from the column name (no
+     `add_timevalue` for `Col.TIMED_VALUE`).
+
+**Why:** the same concept must be greppable and unambiguous from column to variable to
+function to file. If `Col.TIMED_VALUE = "timed_value"`, then the column, the local var,
+the param, and `add_timed_value` all read `timed_value`. This is what makes the rename
+discipline (asset_code, exch_symbol, exch_mark_price, …) enforceable and what lets the
+pandera schema layer (R4.4) bind to the registry by reference, not by repetition.
+
+The registry is **engine-neutral** (plain strings; no pandas/polars types in it — R8)
+and **layered** (core base names + per-domain extensions, R0/R4 "core + domain
+extensions"): generic concepts (`timestamp`, `price`, `iv`, `asset_code`, greeks) live
+in `core`; domain concepts (`strike`, `option_type`, `price_status`) live in the
+domain's dictionary and extend core.
+
+### R4.4 Schemas bind to the registry, never restate names
+
+DataFrame schemas (pandera `DataFrameModel`s) are the validation + dataset-composition
+layer. Every schema field binds to a registry name **by reference**
+(`pa.Field(alias=Col.STRIKE)`), never by retyping the string. Shared column groups
+(timestamp / quote / OHLC / greeks) are **mixin** models; entity models
+(`OptionsHistory`, `FuturesHistory`, `SpotHistory`, `OptionsBook`) compose mixins +
+domain fields. Validation runs at layer boundaries (provider/exchange normalize output;
+enrichment in dev) with `strict=False`, `coerce=True`, `lazy=True`; disabled in
+production ETL via config. See the backlog (T23) for the build-out.
+
+### R4.5 Classification axes — one word per axis
+
+An instrument is classified along several **independent axes**. Each axis is a distinct
+column and a distinct enum, and each classifier word (`kind`, `class`, `right`, `style`,
+`tenor`) is reserved for exactly one axis — never reused. The legacy `type` was
+overloaded (held a *kind* in `asset_type`, a *class* in `underlying_asset_type`, a
+*right* in `option_type`); it is retired in favor of these:
+
+| Axis | Column | Enum | Stored values | Where it lives | Notes |
+|---|---|---|---|---|---|
+| Instrument kind | `instrument_kind` | `InstrumentKind` | `option` / `future` / `spot` (**singular**) | per-row column (`core`) | the *form* of instrument. Singular — one row is one contract, matching exchange APIs (Deribit `kind="option"`). Was `asset_type` (mislabeled) with plural values. |
+| Asset class | `asset_class` | `AssetClass` | `equity` / `commodity` / `crypto` / `index` / `currency` | property of `asset_code` (`core`) | nature of the *underlying*. Was the `AssetType` enum. |
+| Contract kind | `contract_kind` | `ContractKind` | `vanilla` / `cso` / `stir` / `combo` … | per-row column (`core`) | same asset class, different product. Deribit `*_combo` → here. |
+| Option right | `option_right` | `OptionRight` | `call` / `put` | per-row column (`options` domain) | the *right* (call=buy, put=sell). **Not** `side` (side = buy/sell of a position, a different concept reserved for legs). Was `option_type`. |
+| Option style | `option_style` | `OptionStyle` | `american` / `european` | reference property of the instrument (`options` domain) | changes the pricing model. |
+| Series tenor | `series_tenor` | `SeriesTenor` | `weekly` / `monthly` / `quarterly` | series property (`options` domain) | separate trading series on one asset class. Lower priority. |
+
+Rules:
+- **Stored values describing one row are singular**, following the domain's name for a
+  *single contract* (`instrument_kind="option"`, not `"options"`) — this overrides any
+  notation preference and matches exchange APIs. This is the data-value counterpart of
+  R4.1: package/class names for the *domain/collection* stay plural (`alphavar.options`,
+  `OptionsColumns`), but a value in a per-row column names *one* instrument, so singular.
+  **Migration:** today `AssetKind` stores plural (`"options"`/`"futures"`) in parquet and
+  in the dir layout (`DERIBIT/BTC/options/…`); moving to singular requires a parquet +
+  path migration (backlog T23.6 / data migration).
+- **Columns are singular** (one row = one instrument's attribute): `option_right`,
+  `instrument_kind`, `option_style`. **Enums are singular** too (`OptionRight` — one
+  value out of a set, like `enum Color`), an intentional exception to R4.1's "plural for
+  classes": a value-enum names a single value, whereas `OptionsColumns` names a
+  *collection* of columns.
+- Identity vs classification: *what* the contract is on = `asset_code` (R4.1.1); *how*
+  it is classified = these axes. Don't encode an axis into `asset_code`.
+- `instrument_kind`/`asset_class`/`contract_kind` are domain-neutral → `core`;
+  `option_right`/`option_style`/`series_tenor` are options-domain → `alphavar.options`.
+
+**Axis enums are plain `StrEnum`; storage compactness is the schema's `category` dtype,
+not a hand-rolled code.** The legacy `EnumCode` (value `"option"` + short code `"o"`,
+storing `"o"` in parquet) is retired: a `StrEnum` member *is* its readable value
+(`df[Col.OPTION_RIGHT] == OptionRight.CALL` needs no `.code`/`.value`), and the
+pandas/polars `category` dtype — declared in the pandera schema (R4.4) — gives the same
+memory/filter win automatically while keeping raw data readable (`"call"`, not `"c"`).
+So: human values in data, no manual codes, `category` dtype for the categorical columns.
+Migration: existing parquet stores the old short codes (`"o"`, `"c"`) and must be
+expanded to values (backlog data migration).
+
+### R4.6 Reference data vs time series — normalize, don't denormalize per row
+
+Quote/history DataFrames hold **only time-varying, per-row data**. Attributes that are
+constant for a whole instrument (or asset, or currency) are **not** stored as a repeated
+column on every row — they live in separate **reference entities**, loaded and passed as
+objects, never broadcast into the frame. Rationale (measured on a real Deribit options
+file): constant string columns `kind`/`symbol`/`option_type` alone were ~8.8 MB of ~25 MB
+(~35%) — pure repetition.
+
+**What goes where:**
+- **Per-row (stays in the quotes frame):** anything that varies row to row —
+  `option_right` (call *and* put exist per strike), `strike`, `expiration_date`,
+  `price`, `iv`, `ask`, `bid`, `volume`, `timestamp`, greeks, the `exch_*` raw values.
+- **Contract-level reference** (one record per `(asset_code, expiration_date, strike,
+  option_right)` — verified 1:1 with `exch_symbol`): `exch_symbol`, `option_style`,
+  `contract_size`, tick size, lot size.
+- **Asset-level reference** (one record per `asset_code`): `instrument_kind`,
+  `asset_class`, `currency`, base/underlying codes, multiplier.
+- **Class/currency-level reference** (shared across many instruments): interest `rates`
+  per currency; `splits`/`dividends` per equity `asset_code`. These are their own
+  reference entities, not attached to one instrument.
+
+**Two design rules:**
+1. **Temporal validity (slowly-changing dimension).** Reference data changes over time
+   (`contract_size` revisions, listing/delisting, dividend schedule). Reference records
+   are **snapshots with a validity range** (`valid_from`/`valid_to`), not a single
+   current row. A load for a date selects the snapshot valid then.
+2. **Stored as an entity, not columns.** Reference data is persisted **separately** from
+   quotes — `metadata`/reference parquet under the instrument's data folder (e.g.
+   `{EXCHANGE}/{asset_code}/_meta.parquet`, class/currency references at the exchange or
+   asset root), written/updated by ETL. On load it is read into a Pydantic entity
+   (`InstrumentMeta`, `AssetMeta`, `RatesTable`, …) carried by `OptionData`/the facade —
+   **never** merged back as constant columns. Analytics that need an attribute read it
+   from the entity (or the library joins on demand for a specific computation).
+
+This keeps quote files small and makes "what is true about this instrument over time" a
+first-class, queryable thing rather than redundant column noise.
 
 ## R5. Packaging
 
