@@ -1,1 +1,5 @@
-"""Exchange fixture test tooling (trim, mock). See docs/dev/agents/tools/exchange-fixtures.md."""
+"""Exchange fixture test tooling: offline trimmer + httpx mock transport (T11).
+
+Replays the fixtures recorded by `agents/tools/exchange_fixtures`. Not an agent tool —
+test infrastructure imported by tests/unit/exchange/conftest.py.
+"""

@@ -20,9 +20,10 @@ repo/
     README.md                       # this file (the working model + rationale)
     memory/                         # durable notes/decisions → graduate into rules
     skills/                         # task playbooks (plain Markdown: steps, commands, verify)
-    tools/                          # tool specs AND their code together (Agent-Skills style)
-      <tool>.md                     # spec: what/why/how to run
-      <tool_pkg>/                   # the code (CLI/functions), reused not regenerated
+    tools/                          # tools = code; docs in the package docstring
+      <tool_pkg>/                   # the code (CLI/functions), reused not regenerated;
+                                    #   purpose + run command live in its __main__ docstring
+      <tool>.md                     # ONLY for MCP/external tools (config not in the code)
     knowledge/                      # concentrated, sourced domain knowledge
   docs/dev/
     ARCHITECTURE_REQUIREMENTS.md    # architecture/domain rules R0…R8
@@ -78,8 +79,10 @@ code sit together.
 - **AGENTS.md at repo root** is the de-facto cross-tool standard. We keep it.
   ([AGENTS.md guide](https://blog.buildbetter.ai/agents-md-complete-guide-for-engineering-teams-in-2026/))
 - **Anthropic "Agent Skills" standard**: a skill is a folder with `SKILL.md` plus optional
-  `scripts/` (code), `references/`, `assets/` — **code and spec live together**. We adopt
-  this shape for `tools/` (`<tool>.md` + `<tool_pkg>/`).
+  `scripts/` (code) — **code and docs live together**. We adopt this for `tools/`: the
+  code package is the tool, its docstring is the doc; a `.md` spec is added only for
+  MCP/external tools whose config isn't in the code (a self-documenting `python -m`
+  package gets no `.md` — that would just duplicate the docstring).
   ([SKILL.md standard](https://www.agensi.io/learn/agent-skills-open-standard),
   [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview))
 - **Repository-based convention** groups agentic tooling under a root `agents/` with

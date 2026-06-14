@@ -1,10 +1,20 @@
-"""Record exchange HTTP fixtures from live APIs (needs network; run rarely).
+"""Record exchange HTTP fixtures from live APIs into tests/unit/exchange/fixtures/.
 
-    uv run python -m tools.exchange_fixtures              # all exchanges
-    uv run python -m tools.exchange_fixtures --only moex
+This is the AI/dev tool (code, D4) for the hermetic-exchange-test fixtures. It hits the
+live venue APIs (needs network; run rarely — when an endpoint's shape changes), reusing
+`alphavar.exchange` rather than re-implementing requests. Responses are keyed by
+path+query and stored with their HTTP status (so 4xx error paths are exercised too).
 
-After recording, shrink the fixtures with the trimmer in tests/utils:
+    uv run python -m agents.tools.exchange_fixtures            # all exchanges
+    uv run python -m agents.tools.exchange_fixtures --only moex
+
+After recording, shrink the fixtures (offline, idempotent) with the trimmer in
+tests/utils, then run the (now hermetic) exchange suite:
+
     uv run python -m tests.utils.exchange_fixtures.trim
+    uv run --extra etl pytest tests/unit/exchange -q
+
+Full playbook (when/why/verify): agents/skills/refresh-exchange-fixtures.md.
 """
 import argparse
 

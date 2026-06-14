@@ -121,12 +121,18 @@ npm run dev
 - `agents/README.md` — how AI-development artifacts are organized in-repo (the working
   model + rationale).
 - `agents/` (repo root, **not** under `docs/` — these are agent artifacts, not project
-  documentation; follows the Agent Skills convention) — vendor-neutral AI artifacts:
-  `memory/` (durable notes → graduate into rules), `skills/` (task playbooks), `tools/`
-  (tool specs **and their code together**, e.g. `tools/exchange_fixtures/`; prefer tools
-  as code to save tokens, D4), `knowledge/` (concentrated, sourced domain knowledge —
-  exchanges/APIs, options, risk, portfolio). **Read `agents/memory/` at session start;
-  consult `agents/knowledge/` before re-researching the domain.**
+  documentation; follows the Agent Skills convention; see `agents/README.md`) —
+  vendor-neutral AI artifacts. Each folder's index is its `README.md`.
+  - `memory/` — durable notes/decisions → graduate into rules. **Read at session start.**
+  - `tools/` — **code**: a deterministic, reusable package/CLI (D4). Docs live in the
+    package/`__main__` docstring (run `python -m agents.tools.<tool>`); a separate `.md`
+    spec is only for MCP/external tools whose config isn't in the code. Reuse project
+    code (e.g. `alphavar.exchange`), don't re-implement.
+  - `skills/` — **know-how**: task playbooks (when/why/order/verify). A skill may *call*
+    tools (tool-driven) or be pure procedure for a pipeline (knowledge), but never inlines
+    a tool's code. Split: mechanical+repeated → tool; judgement/ordering → skill.
+  - `knowledge/` — concentrated, sourced domain reference (exchanges/APIs, options, risk,
+    portfolio). **Consult before re-researching the domain.**
 - `Option_and_futures/TASKS.md` — remediation backlog (task statuses).
 
 ## Mandatory: owner verification of math / DataFrame / architecture
