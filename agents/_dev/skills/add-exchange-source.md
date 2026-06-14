@@ -8,7 +8,7 @@ order; verify each layer before the next.
 **When.** A new venue must be queryable through the same `Option`/provider interface as
 Deribit/MOEX.
 
-**Preconditions.** Read `agents/knowledge/exchanges/` for the venue's API; `uv sync
+**Preconditions.** Read `agents/shared/knowledge/exchanges/` for the venue's API; `uv sync
 --all-extras`.
 
 ## Pipeline (layer by layer)
@@ -40,7 +40,7 @@ Deribit/MOEX.
 4. **Tests, hermetic (D1).** Add `tests/unit/exchange/<venue>_test.py`. Record fixtures
    with the recorder tool and replay via the mock — see the
    [`refresh-exchange-fixtures`](refresh-exchange-fixtures.md) skill; add the venue's
-   calls to `agents/tools/exchange_fixtures/<venue>.py`. Mark heavy multi-asset walks
+   calls to `agents/_dev/tools/exchange_fixtures/<venue>.py`. Mark heavy multi-asset walks
    `@pytest.mark.integration`.
 
 5. **D2 — owner verification.** The normalization (any DataFrame derivation / column

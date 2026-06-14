@@ -6,7 +6,7 @@ it orchestrates the recorder + trimmer tools, then verifies.
 
 **When.** An exchange test fails with a parse/shape mismatch that reflects a *real* API
 change (not a code bug); or you added a new captured call in
-`agents/tools/exchange_fixtures/<exchange>.py`.
+`agents/_dev/tools/exchange_fixtures/<exchange>.py`.
 
 **Preconditions.**
 - Network access to the live venue APIs (recording step only).
@@ -18,8 +18,8 @@ change (not a code bug); or you added a new captured call in
 1. **Record** (needs network) — captures full responses keyed by path+query, with HTTP
    status, into `tests/unit/exchange/fixtures/<exchange>/`:
    ```bash
-   uv run python -m agents.tools.exchange_fixtures            # both, or
-   uv run python -m agents.tools.exchange_fixtures --only deribit
+   uv run python -m agents._dev.tools.exchange_fixtures            # both, or
+   uv run python -m agents._dev.tools.exchange_fixtures --only deribit
    ```
    A venue rejecting a call is logged + skipped (best-effort). Non-2xx (e.g. 422/400) is
    recorded *with its status* on purpose — error paths must be exercised too.

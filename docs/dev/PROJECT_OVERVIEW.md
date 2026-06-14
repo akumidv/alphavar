@@ -23,6 +23,27 @@ It provides a single interface for:
 
 **Language:** Python `>=3.14`. **Package manager:** [uv](https://docs.astral.sh/uv/) (build backend: hatchling).
 
+### Ecosystem & AI agents
+
+`alphavar` is one component of a wider goal: an **ecosystem for extracting alpha** from
+financial markets — options/derivatives today, with equities (fundamental analysis) and
+bonds, plus broad market/macro context, to follow. Alongside this library the ecosystem
+includes [`catcher-bot`](https://github.com/akumidv/catcher-bot) for automated trading;
+general entities and domains (e.g. `options`) are expected to graduate into git submodules.
+
+The ecosystem is built and operated **through AI agents** (locally now, possibly
+server-side later), split into two classes:
+
+- **build agent** — develops this codebase (bound by R#/D#);
+- **operate ("desk") agents** — use the library + bot on the market: investment/options
+  analysis, strategy backtesting, fundamental analysis for equity/bond forecasts, and
+  trading — coordinated by an orchestrator and bound by runtime guardrails (G#).
+
+Agents share a domain knowledge base (destined for MCP) and improve the system via a learn
+loop routed through the build agent. Full model:
+[`../../agents/README.md`](../../agents/README.md); guardrails:
+[`../../agents/desk/GUARDRAILS.md`](../../agents/desk/GUARDRAILS.md).
+
 ---
 
 ## 2. Repository map

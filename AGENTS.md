@@ -3,6 +3,22 @@
 Guidance for AI coding agents (Claude Code, GitHub Copilot, Codex, etc.) working in this
 repository. `CLAUDE.md` points here — this is the single source of truth for agents.
 
+## Operating mode — read first
+
+This repo hosts an **agent ecosystem** (alpha extraction from markets), so a session runs in
+one of two modes. **Default = DESK (operate).**
+
+| Mode | You are | Rules | Home |
+|---|---|---|---|
+| **DESK** (default) | operating on the market/data — analysis, backtest, trading | **G#** + R# | [`agents/desk/`](agents/desk/) |
+| **DEV / BUILD** | building the alphavar codebase | **R# + D#** | [`agents/_dev/`](agents/_dev/) |
+
+- **Switch by plain text:** `dev` / `build` → DEV; `desk` / `operate` → DESK. Vendor
+  sub-agent files (`.claude/agents/…`) are optional sugar that only reference these charters.
+- **Session-start banner:** your **first message** states the active mode and how to switch,
+  e.g. *"🟢 Mode: DESK (operate) — read-only by default (G5). Say `dev` to build code."*
+- Full model, entity theses, and the learn loop: [`agents/README.md`](agents/README.md).
+
 ## Project Overview
 
 **alphavar** is a Python library for options (and futures) analysis and visualization.
@@ -114,33 +130,37 @@ npm run dev
   (Claude, GPT/Codex, Gemini, Copilot, …). Per-tool files (`CLAUDE.md`,
   `.github/copilot-instructions.md`, …) are thin pointers here — do not duplicate rules.
 - `docs/` — user-facing documentation site (Next.js + Markdoc).
-- `docs/dev/` — development documentation: architecture/domain rules
-  (`ARCHITECTURE_REQUIREMENTS.md`, R0…R8 — verify on new entities/domain or serious
-  domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, D1…D3 —
-  check every change), design overview (`PROJECT_OVERVIEW.md`).
-- `agents/README.md` — how AI-development artifacts are organized in-repo (the working
-  model + rationale).
+- `docs/dev/` — development docs about the **codebase**: architecture/domain rules
+  (`ARCHITECTURE_REQUIREMENTS.md`, **R0…R8** — verify on new entities/domain or serious
+  domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, **D1…D4** —
+  check every change), design overview (`PROJECT_OVERVIEW.md`). The third requirement axis,
+  runtime **desk guardrails G#**, lives with the agents in
+  [`agents/desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md).
+- [`agents/README.md`](agents/README.md) — the **agent operating system**: the two agent
+  classes, modes, entity theses, and the learn loop.
 - `agents/` (repo root, **not** under `docs/` — these are agent artifacts, not project
-  documentation; follows the Agent Skills convention; see `agents/README.md`) —
-  vendor-neutral AI artifacts. Each folder's index is its `README.md`.
-  - `memory/` — durable notes/decisions → graduate into rules. **Read at session start.**
-  - `tools/` — **code**: a deterministic, reusable package/CLI (D4). Docs live in the
-    package/`__main__` docstring (run `python -m agents.tools.<tool>`); a separate `.md`
-    spec is only for MCP/external tools whose config isn't in the code. Reuse project
-    code (e.g. `alphavar.exchange`), don't re-implement.
-  - `skills/` — **know-how**: task playbooks (when/why/order/verify). A skill may *call*
-    tools (tool-driven) or be pure procedure for a pipeline (knowledge), but never inlines
-    a tool's code. Split: mechanical+repeated → tool; judgement/ordering → skill.
-  - `knowledge/` — concentrated, sourced domain reference (exchanges/APIs, options, risk,
-    portfolio). **Consult before re-researching the domain.**
-- `Option_and_futures/TASKS.md` — remediation backlog (task statuses).
+  documentation; follows the Agent Skills convention). Each folder's index is its
+  `README.md`. Split by what the agent acts on:
+  - [`_dev/`](agents/_dev/) — the **build** agent (underscore = private/special): code,
+    tests, refactors. Holds `skills/ tools/ memory/` and [`TASKS.md`](agents/_dev/TASKS.md);
+    bound by R# + D#. Its **tools = code** (docstring is the doc; run
+    `python -m agents._dev.tools.<tool>`; a `.md` spec only for MCP/external), **skills =
+    know-how** (when/why/order, tool-driven or pure procedure). **Read `_dev/memory/` at
+    session start in dev mode.**
+  - [`desk/`](agents/desk/) — the **operate** agents (default mode): analysis, backtesting,
+    trading via catcher-bot. One folder per agent (charter + pipeline + `skills/ tools/
+    memory/`), bound by [`desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md) (**G#**).
+  - [`shared/`](agents/shared/) — substrate for both classes: `knowledge/` (sourced domain
+    reference) now, shared skills/tools later → MCP. **Consult before re-researching.**
+- [`agents/_dev/TASKS.md`](agents/_dev/TASKS.md) — remediation backlog / TODO cycle (the dev
+  agent's queue; sink of the desk learn loop).
 
 ## Mandatory: owner verification of math / DataFrame / architecture
 
 Any DataFrame operation, quantitative/financial math, or architectural change must be
 explained and **explicitly verified by the owner** before it is "done" — passing tests
 are not sufficient. See `DEVELOPMENT_REQUIREMENTS.md` **D2** and
-`agents/memory/owner-verifies-math-and-architecture.md`.
+`agents/_dev/memory/owner-verifies-math-and-architecture.md`.
 
 All project files are written in English.
 

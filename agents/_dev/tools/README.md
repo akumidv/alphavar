@@ -30,7 +30,7 @@ and repeated → make it a tool. If it is ordering/context/judgement → keep it
 ## Index
 
 - [`exchange_fixtures/`](exchange_fixtures/) (code; docs in its `__main__` docstring,
-  run `python -m agents.tools.exchange_fixtures`): record live exchange API responses
+  run `python -m agents._dev.tools.exchange_fixtures`): record live exchange API responses
   into hermetic test fixtures, reusing `alphavar.exchange`. Paired trimmer/mock live in
   `tests/utils/exchange_fixtures/` (test infrastructure, not an agent tool). Playbook:
   [`../skills/refresh-exchange-fixtures.md`](../skills/refresh-exchange-fixtures.md).

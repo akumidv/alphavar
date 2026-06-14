@@ -16,6 +16,6 @@ Non-obvious operational facts:
 - Test output artefacts (charts) go to project-root `.tmp/` (git-ignored) via the
   `tmp_output_dir` fixture / `ALPHAVAR_TMP_DIR` env var set in `tests/conftest.py`.
 
-Tasks live in the repo at `Option_and_futures/TASKS.md`; formal rules in
-`../../ARCHITECTURE_REQUIREMENTS.md`. See
+Tasks live in the repo at `agents/_dev/TASKS.md`; formal rules in
+`../../../docs/dev/ARCHITECTURE_REQUIREMENTS.md`. See
 [owner-verifies-math-and-architecture.md](owner-verifies-math-and-architecture.md).
