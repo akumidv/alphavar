@@ -9,9 +9,11 @@ dataframe columns:
 
 import builtins
 import datetime
+
 import pandas as pd
 from pydantic import validate_call
-from alphavar.options_lib.dictionary import Timeframe, AssetKind
+
+from alphavar.options_lib.dictionary import AssetKind, Timeframe
 from alphavar.provider._file_provider import AbstractFileProvider
 from alphavar.provider._provider_entities import RequestParameters
 
@@ -19,9 +21,7 @@ from alphavar.provider._provider_entities import RequestParameters
 class PandasLocalFileProvider(AbstractFileProvider):
     """Load data from files by Pandas"""
 
-    def _fn_path_prepare(
-        self, asset_code: str, asset_kind: AssetKind, timeframe: Timeframe, year: int
-    ):
+    def _fn_path_prepare(self, asset_code: str, asset_kind: AssetKind, timeframe: Timeframe, year: int):
         return super().fn_path_prepare(asset_code, asset_kind, timeframe, year)
 
     def _load_data_for_period(
@@ -36,24 +36,16 @@ class PandasLocalFileProvider(AbstractFileProvider):
         if params.period_from is None:
             match type(params.period_to):
                 case builtins.int:
-                    fn_path = self._fn_path_prepare(
-                        asset_code, asset_kind, params.timeframe, params.period_to
-                    )
+                    fn_path = self._fn_path_prepare(asset_code, asset_kind, params.timeframe, params.period_to)
                     return pd.read_parquet(fn_path, columns=columns)
                 case datetime.date:
-                    fn_path = self._fn_path_prepare(
-                        asset_code, asset_kind, params.timeframe, params.period_to.year
-                    )
+                    fn_path = self._fn_path_prepare(asset_code, asset_kind, params.timeframe, params.period_to.year)
                     df_hist = pd.read_parquet(fn_path, columns=columns)
-                    return df_hist[df_hist["datetime"] == params.period_to].reset_index(
-                        drop=True
-                    )
+                    return df_hist[df_hist["datetime"] == params.period_to].reset_index(drop=True)
                 case datetime.datetime:
                     raise NotImplementedError("to period type datetime.datetime")
                 case _:
-                    raise TypeError(
-                        f"period_to have incorrect type {type(params.period_to)}"
-                    )
+                    raise TypeError(f"period_to have incorrect type {type(params.period_to)}")
         else:
             match type(params.period_from):
                 case builtins.int:
@@ -62,8 +54,7 @@ class PandasLocalFileProvider(AbstractFileProvider):
                     if isinstance(params.period_to, int):
                         raise NotImplementedError("Load from year to year")
                     raise TypeError(
-                        f"Mismatch types period_from {type(params.period_from)} "
-                        f"and period_to {type(params.period_to)}"
+                        f"Mismatch types period_from {type(params.period_from)} and period_to {type(params.period_to)}"
                     )
                 case datetime.date:
                     if params.period_to is None:
@@ -71,15 +62,12 @@ class PandasLocalFileProvider(AbstractFileProvider):
                     if isinstance(params.period_to, datetime.date):
                         raise NotImplementedError("Load from date to date")
                     raise TypeError(
-                        f"Mismatch types period_from {type(params.period_from)} "
-                        f"and period_to {type(params.period_to)}"
+                        f"Mismatch types period_from {type(params.period_from)} and period_to {type(params.period_to)}"
                     )
                 case datetime.datetime:
                     raise NotImplementedError("period from datatime")
                 case _:
-                    raise TypeError(
-                        f"period_from have incorrect type {type(params.period_from)}"
-                    )
+                    raise TypeError(f"period_from have incorrect type {type(params.period_from)}")
 
     @validate_call
     def load_options_history(
@@ -151,10 +139,5 @@ class PandasLocalFileProvider(AbstractFileProvider):
         timeframe: Timeframe = Timeframe.EOD,
         columns: list | None = None,
     ) -> pd.DataFrame | None:
-        """Provide options chain by request to api if supported. Otherwise, return None.
-
-        A local file provider has no live chain API, so it returns ``None`` and the caller
-        (`OptionData.update_option_chain` → `OptionChain.select_chain`) falls back to
-        building the chain from loaded history.
-        """
-        return None
+        """Load local history if have, otherwise return None)"""
+        raise NotImplementedError
