@@ -1,5 +1,6 @@
-"""Deribit exchange provider"""
+"""MOEX exchange provider"""
 import pandas as pd
+import pytest
 from alphavar.options_lib.dictionary import AssetKind, OptionsColumns as OCl
 from alphavar.provider import AbstractProvider
 from alphavar.exchange import AbstractExchange
@@ -20,6 +21,7 @@ def test_get_assets_list_future(moex_exchange, moex_asset_code):
     assert moex_asset_code in assets
 
 
+@pytest.mark.integration  # walks every asset's /options endpoint (live API)
 def test_get_assets_list_options(moex_exchange, moex_asset_code):
     asset_kind = AssetKind.OPTIONS
     assets = moex_exchange.get_assets_list(asset_kind)
@@ -28,6 +30,7 @@ def test_get_assets_list_options(moex_exchange, moex_asset_code):
     assert moex_asset_code in assets
 
 
+@pytest.mark.integration  # heavy multi-asset snapshot (~2min on the live API)
 def test_get_options_assets_books_snapshot(moex_exchange, moex_asset_code):
     book_summary_df = moex_exchange.get_options_assets_books_snapshot(moex_asset_code)
     assert isinstance(book_summary_df, pd.DataFrame)

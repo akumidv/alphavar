@@ -1,0 +1,30 @@
+{
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC": {
+  "file": "0.json",
+  "status": 200
+ },
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=future": {
+  "file": "1.json",
+  "status": 200
+ },
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=future_combo": {
+  "file": "2.json",
+  "status": 200
+ },
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option": {
+  "file": "3.json",
+  "status": 200
+ },
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=option_combo": {
+  "file": "4.json",
+  "status": 200
+ },
+ "/api/v2/public/get_book_summary_by_currency?currency=BTC&kind=spot": {
+  "file": "5.json",
+  "status": 200
+ },
+ "/api/v2/public/get_instruments": {
+  "file": "6.json",
+  "status": 200
+ }
+}

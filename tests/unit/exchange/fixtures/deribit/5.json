@@ -1,0 +1,45 @@
+{
+ "jsonrpc": "2.0",
+ "result": [
+  {
+   "high": 0.0263,
+   "low": 0.0259,
+   "last": 0.0259,
+   "instrument_name": "ETH_BTC",
+   "bid_price": 0.0259,
+   "ask_price": 0.026,
+   "mark_price": 0.02594,
+   "creation_timestamp": 1781435199246,
+   "price_change": -1.5209,
+   "volume": 4.0405,
+   "base_currency": "ETH",
+   "quote_currency": "BTC",
+   "estimated_delivery_price": 0.02594,
+   "volume_usd": 6775.49,
+   "volume_notional": 0.10536722,
+   "mid_price": 0.02595
+  },
+  {
+   "high": 64703.0,
+   "low": 63871.0,
+   "last": 64457.0,
+   "instrument_name": "BTC_USDC",
+   "bid_price": 64472.0,
+   "ask_price": 64491.0,
+   "mark_price": 64452.74,
+   "creation_timestamp": 1781435199246,
+   "price_change": 0.908,
+   "volume": 36.4637,
+   "base_currency": "BTC",
+   "quote_currency": "USDC",
+   "estimated_delivery_price": 64452.74,
+   "volume_usd": 2345365.04,
+   "volume_notional": 2345883.797,
+   "mid_price": 64481.5
+  }
+ ],
+ "usIn": 1781435199246398,
+ "usOut": 1781435199246725,
+ "usDiff": 327,
+ "testnet": false
+}

@@ -1,0 +1,26 @@
+[
+ {
+  "asset_code": "AFKS",
+  "title": "AFKS (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "AFLT",
+  "title": "AFLT (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "ALRS",
+  "title": "ALRS (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "SI",
+  "title": "Si (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "currency"
+ }
+]

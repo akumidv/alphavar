@@ -21,6 +21,7 @@ def test_get_symbols_list_future(deribit_client):
     assert 'BTC_USD' in symbols
 
 
+@pytest.mark.integration  # snapshot walks every currency (BTC, ETH, USDC, …) — live API
 def test_get_symbols_books_snapshot(deribit_client):
     book_summary_df = deribit_client.get_options_assets_books_snapshot()
     print(book_summary_df)

@@ -67,13 +67,20 @@ packages = ["src/alphavar"]
 
 [tool.pytest.ini_options]
 pythonpath = [
-    "src"
+    "src",
+    "."
 ]
 env_files = [
     "test.env"
 ]
 testpaths = [
     "tests",
+]
+# Unit suite is hermetic by default (T11/D1). Integration tests hit live exchange APIs
+# or do heavy multi-asset walks — opt in with `pytest -m integration`.
+addopts = "-m 'not integration'"
+markers = [
+    "integration: hits a live exchange API or walks many assets; deselected by default",
 ]
 
 

@@ -1,0 +1,38 @@
+{
+ "/iss/apps/option-calc/v1/assets": {
+  "file": "0.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/AFLT/options": {
+  "file": "1.json",
+  "status": 422
+ },
+ "/iss/apps/option-calc/v1/assets/SI/futures": {
+  "file": "2.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/SI/options": {
+  "file": "3.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/SI/optionseries": {
+  "file": "4.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/SI/optionseries/SI-6.26M180626XA/optionboard": {
+  "file": "5.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/SI/optionseries/SI-6.26M180626XA/options": {
+  "file": "6.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets/SI?asset_type=futures": {
+  "file": "7.json",
+  "status": 200
+ },
+ "/iss/apps/option-calc/v1/assets?asset_type=futures": {
+  "file": "8.json",
+  "status": 200
+ }
+}

@@ -1,0 +1,47 @@
+{
+ "jsonrpc": "2.0",
+ "result": [
+  {
+   "high": 64715.0,
+   "low": 63932.5,
+   "last": 64530.0,
+   "instrument_name": "BTC-3JUL26",
+   "bid_price": 64477.5,
+   "ask_price": 64497.5,
+   "open_interest": 1521580,
+   "mark_price": 64490.31,
+   "creation_timestamp": 1781435190164,
+   "price_change": 0.9346,
+   "volume": 35.92725751,
+   "base_currency": "BTC",
+   "quote_currency": "USD",
+   "estimated_delivery_price": 64446.21,
+   "volume_usd": 2307050.0,
+   "volume_notional": 2307050.0,
+   "mid_price": 64487.5
+  },
+  {
+   "high": 64477.5,
+   "low": 64477.5,
+   "last": 64477.5,
+   "instrument_name": "BTC-18JUN26",
+   "bid_price": 64422.5,
+   "ask_price": 64650.0,
+   "open_interest": 10,
+   "mark_price": 64441.7,
+   "creation_timestamp": 1781435190164,
+   "price_change": 0.0,
+   "volume": 0.00015509,
+   "base_currency": "BTC",
+   "quote_currency": "USD",
+   "estimated_delivery_price": 64446.21,
+   "volume_usd": 10.0,
+   "volume_notional": 10.0,
+   "mid_price": 64536.25
+  }
+ ],
+ "usIn": 1781435190164697,
+ "usOut": 1781435190165197,
+ "usDiff": 500,
+ "testnet": false
+}

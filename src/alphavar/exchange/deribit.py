@@ -30,6 +30,21 @@ class DeribitAssetKind(EnumCode):
     OPTION_COMBO = 'option_combo', 'oc'
 
 
+# К ПРОВЕРКЕ / TO VERIFY (owner): split project enum from the exchange API parameter.
+# The enum `value` is the project-internal name (e.g. OPTION -> 'options', from
+# AssetKind.OPTIONS.value); the Deribit `kind=` query param uses the SINGULAR venue
+# spelling. Sending `kind.value` ('options') returns HTTP 400 — Deribit wants 'option',
+# so Deribit option book snapshots silently failed. This explicit mapping keeps the
+# project enum independent of the API wire format (see backlog: project-enum vs API-enum).
+_DERIBIT_API_KIND: dict[DeribitAssetKind, str] = {
+    DeribitAssetKind.FUTURE: 'future',
+    DeribitAssetKind.OPTION: 'option',
+    DeribitAssetKind.SPOT: 'spot',
+    DeribitAssetKind.FUTURE_COMBO: 'future_combo',
+    DeribitAssetKind.OPTION_COMBO: 'option_combo',
+}
+
+
 DOT_STRIKE_REGEXP = re.compile(r'(\d)d(\d)', flags=re.IGNORECASE)
 COLUMNS_TO_CURRENCY = [OCl.ASK.nm, OCl.BID.nm, OCl.LAST.nm, OCl.HIGH_24.nm, OCl.LOW_24.nm, OCl.EXCHANGE_MARK_PRICE.nm]
 
@@ -163,7 +178,9 @@ class DeribitMarket:
         """
         params = {'currency': currency}
         if kind is not None:
-            params['kind'] = kind.value
+            # К ПРОВЕРКЕ / TO VERIFY (owner): was `params['kind'] = kind.value` — sent the
+            # project-internal name ('options') which Deribit rejects (wants 'option').
+            params['kind'] = _DERIBIT_API_KIND[kind]
         request_timestamp = pd.Timestamp.now(tz=datetime.UTC)
         response = self.client.request_api('/public/get_book_summary_by_currency', params=params)
         book_summary_df = pd.DataFrame(response['result'])

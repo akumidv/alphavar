@@ -13,13 +13,8 @@ from alphavar.exchange import RequestClass
 from alphavar.exchange import AbstractExchange
 from alphavar.exchange.deribit import DeribitMarket, DeribitExchange, DeribitAssetKind
 
-
-@pytest.fixture(name='deribit_market')
-def deribit_market_fixture():
-    """Deribit market data client"""
-    client = RequestClass(api_url=DeribitExchange.TEST_API_URL)
-    deribit_market = DeribitMarket(client)
-    return deribit_market
+# The `deribit_market` fixture is provided by conftest.py with a mocked HTTP transport
+# (hermetic — no live API, T11).
 
 
 def test_deribit_market_init():

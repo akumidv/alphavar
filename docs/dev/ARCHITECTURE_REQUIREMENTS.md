@@ -96,6 +96,23 @@ called **identically**; swapping Deribit for MOEX changes no call site.
 - No public provider/exchange method accepts a `symbol`/`exch_symbol` parameter. (After
   T1b they take `asset_code`; this requirement keeps it that way.)
 
+### R2.2 Project enums are separate from exchange API parameters
+
+A project enum value (its `.value`/`.code`) is the **internal** name of a concept; it is
+**not** automatically the string an exchange API expects. Never send a project enum
+value straight onto the wire — map it explicitly per exchange.
+
+- Each exchange owns an explicit **project-enum → API-string** mapping (e.g.
+  `_DERIBIT_API_KIND[DeribitAssetKind] -> 'option' | 'future' | …`), used when building a
+  request. The wire spelling lives only in that mapping, in the exchange module.
+- Rationale (real bug, 2026-06-14): `DeribitAssetKind.OPTION.value` was `'options'`
+  (inherited from `AssetKind.OPTIONS.value`) and was sent as the Deribit `kind=` param,
+  but Deribit wants singular `'option'` → HTTP 400, so **Deribit option snapshots
+  silently failed**. The fix was an explicit API-kind map, decoupling the internal enum
+  from the venue's wire format.
+- Symmetric to R2.1 (identity) and R4.5 (internal classification values): internal names
+  stay internal; the exchange layer translates at the boundary, both directions.
+
 Rationale: a venue symbol is an exchange-specific encoding; leaking it into the shared
 API would couple callers to one venue's format and break the "new data source =
 new provider, no caller changes" rule.

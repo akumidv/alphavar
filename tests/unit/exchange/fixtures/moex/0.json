@@ -1,0 +1,74 @@
+[
+ {
+  "asset_code": "ABIO",
+  "title": "ABIO (iАРТГЕН ао)",
+  "asset_type": "share",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "AFKS",
+  "title": "AFKS (Система ао)",
+  "asset_type": "share",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "AFKS",
+  "title": "AFKS (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "AFLT",
+  "title": "AFLT (Аэрофлот)",
+  "asset_type": "share",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "AFLT",
+  "title": "AFLT (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "ALRS",
+  "title": "ALRS (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "share"
+ },
+ {
+  "asset_code": "CNYRUB_TOM",
+  "title": "CNYRUB_TOM",
+  "asset_type": "currency",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "EUR_RUB__TOM",
+  "title": "EURRUB_TOM",
+  "asset_type": "currency",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "GLDRUB_TOM",
+  "title": "GLDRUB_TOM",
+  "asset_type": "commodity",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "IMOEX",
+  "title": "IMOEX (Индекс МосБиржи)",
+  "asset_type": "index",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "SBER",
+  "title": "SBER (Сбербанк)",
+  "asset_type": "share",
+  "asset_subtype": null
+ },
+ {
+  "asset_code": "SI",
+  "title": "Si (фьючерс)",
+  "asset_type": "futures",
+  "asset_subtype": "currency"
+ }
+]

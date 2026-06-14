@@ -118,12 +118,15 @@ npm run dev
   (`ARCHITECTURE_REQUIREMENTS.md`, R0…R8 — verify on new entities/domain or serious
   domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, D1…D3 —
   check every change), design overview (`PROJECT_OVERVIEW.md`).
-- `docs/dev/AI_WORKING_MODEL.md` — how AI-development artifacts are organized in-repo.
-- `docs/dev/agents/` — vendor-neutral AI artifacts: `memory/` (durable notes →
-  graduate into rules), `skills/` (task playbooks), `tools/` (tool/MCP specs — prefer
-  tools as code to save tokens, D4), `knowledge/` (concentrated, sourced domain knowledge
-  — exchanges/APIs, options, risk, portfolio). **Read `docs/dev/agents/memory/` at session
-  start; consult `knowledge/` before re-researching the domain.**
+- `agents/README.md` — how AI-development artifacts are organized in-repo (the working
+  model + rationale).
+- `agents/` (repo root, **not** under `docs/` — these are agent artifacts, not project
+  documentation; follows the Agent Skills convention) — vendor-neutral AI artifacts:
+  `memory/` (durable notes → graduate into rules), `skills/` (task playbooks), `tools/`
+  (tool specs **and their code together**, e.g. `tools/exchange_fixtures/`; prefer tools
+  as code to save tokens, D4), `knowledge/` (concentrated, sourced domain knowledge —
+  exchanges/APIs, options, risk, portfolio). **Read `agents/memory/` at session start;
+  consult `agents/knowledge/` before re-researching the domain.**
 - `Option_and_futures/TASKS.md` — remediation backlog (task statuses).
 
 ## Mandatory: owner verification of math / DataFrame / architecture
@@ -131,7 +134,7 @@ npm run dev
 Any DataFrame operation, quantitative/financial math, or architectural change must be
 explained and **explicitly verified by the owner** before it is "done" — passing tests
 are not sufficient. See `DEVELOPMENT_REQUIREMENTS.md` **D2** and
-`docs/dev/agents/memory/owner-verifies-math-and-architecture.md`.
+`agents/memory/owner-verifies-math-and-architecture.md`.
 
 All project files are written in English.
 

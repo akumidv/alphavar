@@ -1,0 +1,44 @@
+[
+ {
+  "futures_code": "SIM6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2026-06-18"
+ },
+ {
+  "futures_code": "SIU6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2026-09-17"
+ },
+ {
+  "futures_code": "SIZ6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2026-12-17"
+ },
+ {
+  "futures_code": "SIH7",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2027-03-18"
+ },
+ {
+  "futures_code": "SIM7",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2027-06-17"
+ },
+ {
+  "futures_code": "SIU7",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2027-09-16"
+ },
+ {
+  "futures_code": "SIZ7",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "expiration_date": "2027-12-16"
+ }
+]

@@ -1,0 +1,42 @@
+[
+ {
+  "secid": "SI55000BF6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIM6",
+  "expiration_date": "2026-06-18",
+  "series_type": "Q",
+  "strike": 55000.0,
+  "option_type": "call"
+ },
+ {
+  "secid": "SI55000BR6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIM6",
+  "expiration_date": "2026-06-18",
+  "series_type": "Q",
+  "strike": 55000.0,
+  "option_type": "put"
+ },
+ {
+  "secid": "SI55500BF6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIM6",
+  "expiration_date": "2026-06-18",
+  "series_type": "Q",
+  "strike": 55500.0,
+  "option_type": "call"
+ },
+ {
+  "secid": "SI55500BR6",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIM6",
+  "expiration_date": "2026-06-18",
+  "series_type": "Q",
+  "strike": 55500.0,
+  "option_type": "put"
+ }
+]

@@ -1,0 +1,43 @@
+{
+ "jsonrpc": "2.0",
+ "result": [
+  {
+   "high": null,
+   "low": null,
+   "last": 0.0119,
+   "instrument_name": "BTC-STRG-19JUN26-59000_67000",
+   "bid_price": 0.0053,
+   "ask_price": 0.0064,
+   "mark_price": 0.00599475,
+   "creation_timestamp": 1781435204134,
+   "price_change": null,
+   "volume": 0.0,
+   "base_currency": "BTC",
+   "quote_currency": "BTC",
+   "estimated_delivery_price": 64454.29,
+   "volume_usd": 0.0,
+   "mid_price": 0.00585
+  },
+  {
+   "high": 0.0133,
+   "low": 0.0133,
+   "last": 0.0133,
+   "instrument_name": "BTC-PDIAG-28AUG26_31JUL26-54000_50000",
+   "bid_price": 0.0133,
+   "ask_price": 0.0144,
+   "mark_price": 0.01396044,
+   "creation_timestamp": 1781435204134,
+   "price_change": 0.0,
+   "volume": 0.2,
+   "base_currency": "BTC",
+   "quote_currency": "BTC",
+   "estimated_delivery_price": 64454.29,
+   "volume_usd": 0.0,
+   "mid_price": 0.01385
+  }
+ ],
+ "usIn": 1781435204134609,
+ "usOut": 1781435204134942,
+ "usDiff": 333,
+ "testnet": false
+}
