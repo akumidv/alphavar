@@ -151,5 +151,10 @@ class PandasLocalFileProvider(AbstractFileProvider):
         timeframe: Timeframe = Timeframe.EOD,
         columns: list | None = None,
     ) -> pd.DataFrame | None:
-        """Provide options chain by request to api if supported. Otherwise, return None"""
-        raise NotImplementedError
+        """Provide options chain by request to api if supported. Otherwise, return None.
+
+        A local file provider has no live chain API, so it returns ``None`` and the caller
+        (`OptionData.update_option_chain` → `OptionChain.select_chain`) falls back to
+        building the chain from loaded history.
+        """
+        return None
