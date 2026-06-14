@@ -1,10 +1,14 @@
 # Architecture Requirements — alphavar
 
 > **Status: binding.** This document captures the current architecture as a set of
-> requirements. Any change (human or AI-agent) MUST preserve these invariants unless the
-> document itself is explicitly revised first. Companion document:
-> [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) (descriptive overview). The remediation
-> backlog is maintained outside this repository, alongside `ALPHAVAR_NAMING.md`.
+> structural requirements (`R#`). Any change (human or AI-agent) MUST preserve these
+> invariants unless the document itself is explicitly revised first. **Verify these
+> especially when introducing new entities/domain concepts or making serious changes to
+> the existing domain model.** For compact day-to-day development rules (quality gates,
+> owner verification, workflow) see the companion
+> [DEVELOPMENT_REQUIREMENTS.md](DEVELOPMENT_REQUIREMENTS.md) (`D#`). Descriptive overview:
+> [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md). The remediation backlog is maintained
+> outside this repository, alongside `ALPHAVAR_NAMING.md`.
 
 ## R0. Package layout: domain-first, then functional (target)
 
@@ -430,11 +434,9 @@ first-class, queryable thing rather than redundant column noise.
 - Engine selection goes through the existing `DataEngine` enum
   (`provider/_provider_entities.py`); providers receive the engine explicitly.
 
-## R9. Quality gates
+---
 
-- Tests live in `tests/unit/<area>/`, mirroring `src/alphavar/`. Unit tests must be
-  hermetic: no live network calls (HTTP is mocked), no machine-specific absolute paths.
-- `pytest` and `pylint src/` must pass before merging to `main`.
-- Python ≥ 3.11, line length ≤ 120, Pydantic models for entities/parameters,
-  docstrings required except `_private`/`test_` functions.
-- All project files in English.
+> Quality gates and the mandatory owner-verification rule (formerly R9/R10) now live in
+> the development document — see [DEVELOPMENT_REQUIREMENTS.md](DEVELOPMENT_REQUIREMENTS.md)
+> **D1** (quality gates) and **D2** (owner verification of math / DataFrame / architecture).
+> Architectural changes to R0…R8 are themselves subject to D2 (explain + owner approval).

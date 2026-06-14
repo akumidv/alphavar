@@ -1,3 +1,4 @@
+import os
 import pytest
 import pandas as pd
 from alphavar.options_lib.dictionary import OptionsColumns as OCl, OptionsType, LegType
@@ -31,11 +32,11 @@ mock_fut_leg = OptionsLeg(strike=0, lots=10, type=LegType.FUTURES)
 
 
 
-def _show_df(df, name):
+def _show_df(df, name, out_dir):
     print('\n')
     print(df)
     df.plot(x='strike', y='risk_pnl', title=name)
-    plt.savefig(f'./{name}.svg')
+    plt.savefig(os.path.join(out_dir, f'{name}.svg'))
 
 
 def test_mock__get_premium(mock_df_op_chain):
@@ -47,7 +48,7 @@ def test_mock__get_premium(mock_df_op_chain):
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:-2])
-def test__calc_profile_long_call(mock_df_op_chain, strike):
+def test__calc_profile_long_call(mock_df_op_chain, strike, tmp_output_dir):
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
@@ -65,11 +66,11 @@ def test__calc_profile_long_call(mock_df_op_chain, strike):
     expected_profit_call = max(-premium,
                                (strike_sell - leg.strike - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
-    _show_df(df_payoff, f'{__name__}_long_call_{strike}_lots_{lots}')
+    _show_df(df_payoff, f'{__name__}_long_call_{strike}_lots_{lots}', tmp_output_dir)
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:-2])
-def test__calc_profile_short_call(mock_df_op_chain, strike):
+def test__calc_profile_short_call(mock_df_op_chain, strike, tmp_output_dir):
     lots = -2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
@@ -79,11 +80,11 @@ def test__calc_profile_short_call(mock_df_op_chain, strike):
     assert df_payoff[RCl.RISK_PNL.nm].max() == earned_premium
     df_payoff_less_strike_price = df_payoff[df_payoff[OCl.STRIKE.nm] > leg.strike]
     assert df_payoff_less_strike_price[RCl.RISK_PNL.nm].max() < earned_premium
-    _show_df(df_payoff, f'{__name__}_short_call_{strike}_lots_{lots}')
+    _show_df(df_payoff, f'{__name__}_short_call_{strike}_lots_{lots}', tmp_output_dir)
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:-2])
-def test__calc_profile_long_put(mock_df_op_chain, strike):
+def test__calc_profile_long_put(mock_df_op_chain, strike, tmp_output_dir):
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_PUT)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
@@ -101,11 +102,11 @@ def test__calc_profile_long_put(mock_df_op_chain, strike):
     expected_profit_call = max(-premium,
                                (leg.strike - strike_sell - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
-    _show_df(df_payoff, f'{__name__}_long_put_{strike}_lots_{lots}')
+    _show_df(df_payoff, f'{__name__}_long_put_{strike}_lots_{lots}', tmp_output_dir)
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:-2])
-def test__calc_profile_short_put(mock_df_op_chain, strike):
+def test__calc_profile_short_put(mock_df_op_chain, strike, tmp_output_dir):
     lots = -2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_PUT)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
@@ -115,11 +116,11 @@ def test__calc_profile_short_put(mock_df_op_chain, strike):
     assert df_payoff[RCl.RISK_PNL.nm].max() == earned_premium
     df_payoff_less_strike_price = df_payoff[df_payoff[OCl.STRIKE.nm] < leg.strike]
     assert df_payoff_less_strike_price[RCl.RISK_PNL.nm].max() < earned_premium
-    _show_df(df_payoff, f'{__name__}_short_put_{strike}_lots_{lots}')
+    _show_df(df_payoff, f'{__name__}_short_put_{strike}_lots_{lots}', tmp_output_dir)
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:2])
-def test__calc_premium_profile_long_call(mock_df_op_chain, strike):
+def test__calc_premium_profile_long_call(mock_df_op_chain, strike, tmp_output_dir):
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
@@ -137,7 +138,7 @@ def test__calc_premium_profile_long_call(mock_df_op_chain, strike):
     expected_profit_call = max(-premium,
                                (strike_sell - leg.strike - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
-    _show_df(df_payoff, f'{__name__}_premium_long_call_{strike}_lots_{lots}')
+    _show_df(df_payoff, f'{__name__}_premium_long_call_{strike}_lots_{lots}', tmp_output_dir)
 
 
 @pytest.mark.parametrize("strike", mock_strikes[1:-2])

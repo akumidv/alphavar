@@ -5,10 +5,11 @@
 /.vscode/
 __pycache__
 .pytest_cache
+/.tmp
 .ipynb_checkpoints
 scripts/_*
 test.env
-/data/
+/data
 *.tar
 /dist/
 /build/

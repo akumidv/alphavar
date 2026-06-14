@@ -18,7 +18,27 @@ from alphavar.exchange.deribit import DeribitExchange
 from alphavar.exchange.moex import MoexExchange
 
 
-_DATA_PATH = os.path.normpath(os.path.abspath(os.environ.get('DATA_PATH', '../../data')))
+# Default to the repo-local `data/` (a developer symlink to the local market-data store),
+# resolved relative to this file so it is independent of the pytest working directory.
+# Override with the DATA_PATH env var (e.g. in test.env). T11 will replace this with a
+# committed hermetic fixture set.
+_DEFAULT_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data')
+_DATA_PATH = os.path.normpath(os.path.abspath(os.environ.get('DATA_PATH', _DEFAULT_DATA_PATH)))
+
+# Single scratch directory for any artefacts tests write (charts, dumps, etc.),
+# at the project root and git-ignored. Exposed both as the `ALPHAVAR_TMP_DIR` env var
+# (so plain helper functions can find it without a fixture) and the `tmp_output_dir`
+# fixture. conftest is imported before any test, so the env var is always set.
+_TMP_DIR = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.tmp')))
+os.makedirs(_TMP_DIR, exist_ok=True)
+os.environ.setdefault('ALPHAVAR_TMP_DIR', _TMP_DIR)
+
+
+@pytest.fixture(name='tmp_output_dir')
+def fixture_tmp_output_dir() -> str:
+    """Project-root `.tmp/` directory for test output artefacts (git-ignored)."""
+    return _TMP_DIR
+
 
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 200)

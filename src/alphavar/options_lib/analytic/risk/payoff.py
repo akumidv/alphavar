@@ -4,7 +4,6 @@ import pandas as pd
 from alphavar.options_lib.dictionary import OptionsColumns as OCl, OptionsType, LegType
 from alphavar.options_lib.entities import OptionsLeg
 from alphavar.options_lib.analytic.risk._risk_entities import RiskColumns as RCl
-from alphavar.options_lib.enrichment import add_intrinsic_and_time_value
 
 def _get_premium(df_chain_type_opt: pd.DataFrame, strike: float, leg_type: LegType | None = None) -> float:
     if leg_type is None and OCl.OPTION_TYPE.nm not in df_chain_type_opt.columns:
@@ -45,45 +44,78 @@ def _calc_profile(df_opt_type: pd.DataFrame, leg: OptionsLeg, premium: float) ->
 
 
 def _calc_premium_profile(df_opt_type: pd.DataFrame, leg: OptionsLeg, premium: float) -> pd.DataFrame:
-    """Calc premium P&L profile"""
-    raise NotImplementedError
-    if OCl.INTRINSIC_VALUE.nm not in df_opt_type.columns:
-        df_opt_type = add_intrinsic_and_time_value(df_opt_type)
+    """Calc the mark-to-market ("today") P&L profile next to the expiration profile.
+
+    ``RISK_PNL`` (from :func:`_calc_profile`) is the payoff at expiration: intrinsic
+    value at each strike net of the premium paid. ``RISK_PNL_PREMIUM`` is the current
+    P&L if the underlying were at each strike level *now*, valuing the leg with that
+    strike's current option price instead of pure intrinsic value — the "today" line on
+    a risk graph. For the long side the loss is bounded by the premium at risk; the
+    short side mirrors it (max gain = premium received).
+    """
+    df_opt_type = _calc_profile(df_opt_type, leg, premium)
     if leg.type == LegType.OPTIONS_CALL:
-        if leg.lots > 0:
-            df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = df_opt_type[OCl.STRIKE.nm] - leg.strike + \
-                                                          (df_opt_type[OCl.PRICE.nm]) - premium
-            # df_opt_type.loc[df_opt_type[OCl.STRIKE.nm] <= leg.strike,
-            # RCl.RISK_PNL_PREMIUM.nm] = df_opt_type[OCl.STRIKE.nm] - leg.strike + \
-            #                            (df_opt_type[OCl.PRICE.nm]) - premium
-            df_opt_type.loc[df_opt_type[RCl.RISK_PNL_PREMIUM.nm] < -premium, RCl.RISK_PNL_PREMIUM.nm] = -premium
-            # df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type[OCl.STRIKE.nm] + df_opt_type[
-            #     OCl.PRICE.nm] - leg.strike - premium) * leg.lots
-            # loss_strike_filter = df_opt_type[OCl.STRIKE.nm] <= leg.strike
-            # df_opt_type.loc[loss_strike_filter, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type.loc[
-            #                                                                     loss_strike_filter, OCl.PRICE.nm] -
-            #                                                                 (leg.strike - df_opt_type.loc[
-            #                                                                     loss_strike_filter, OCl.STRIKE.nm])
-            #                                                                 - premium) * leg.lots
-        else:
-            df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = premium - (df_opt_type.loc[:, OCl.STRIKE.nm] - leg.strike)
-            df_opt_type.loc[df_opt_type[OCl.STRIKE.nm] <= leg.strike, RCl.RISK_PNL_PREMIUM.nm] = premium
-
-
+        intrinsic_shift = df_opt_type[OCl.STRIKE.nm] - leg.strike
     else:
-        df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = (leg.strike - df_opt_type[OCl.STRIKE.nm] + df_opt_type[
-            OCl.PRICE.nm] - premium) * leg.lots
-        loss_strike_filter = df_opt_type[OCl.STRIKE.nm] >= leg.strike
-        df_opt_type.loc[loss_strike_filter, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type.loc[
-                                                                            loss_strike_filter, OCl.PRICE.nm] -
-                                                                        (df_opt_type.loc[
-                                                                             loss_strike_filter, OCl.STRIKE.nm] - leg.strike)
-                                                                        - premium) * leg.lots
-        df_opt_type.loc[
-            df_opt_type[RCl.RISK_PNL_PREMIUM.nm] < -premium * leg.lots, RCl.RISK_PNL_PREMIUM.nm] = -premium * leg.lots
-    df_opt_type = _calc_profile(df_opt_type, leg, premium) # TODO remove
-    df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] *= abs(leg.lots)
+        intrinsic_shift = leg.strike - df_opt_type[OCl.STRIKE.nm]
+    # Per-lot current P&L: intrinsic shift plus the option's current price at that
+    # strike, net of premium paid, capped at the premium at risk (long-side max loss).
+    pnl_premium = (intrinsic_shift + df_opt_type[OCl.PRICE.nm] - premium).clip(lower=-premium)
+    if leg.lots < 0:  # short: mirror the long profile (max gain = premium received)
+        pnl_premium = -pnl_premium
+    df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = pnl_premium * abs(leg.lots)
     return df_opt_type
+
+# ─────────────────────────────────────────────────────────────────────────────────────
+# К ПРОВЕРКЕ / TO VERIFY (owner): the mark-to-market math in `_calc_premium_profile`
+# above is NOT yet verified by the owner — per DEVELOPMENT_REQUIREMENTS D2 all DataFrame
+# / math implementations must be explained and explicitly verified by the owner before
+# being treated as final. The original pre-2026-06-14 implementation (raised
+# NotImplementedError, with several unfinished attempts) is preserved verbatim below for
+# that review. `add_intrinsic_and_time_value` is no longer imported — restore the import
+# if this body is reinstated.
+#
+# def _calc_premium_profile(df_opt_type: pd.DataFrame, leg: OptionsLeg, premium: float) -> pd.DataFrame:
+#     """Calc premium P&L profile"""
+#     raise NotImplementedError
+#     if OCl.INTRINSIC_VALUE.nm not in df_opt_type.columns:
+#         df_opt_type = add_intrinsic_and_time_value(df_opt_type)
+#     if leg.type == LegType.OPTIONS_CALL:
+#         if leg.lots > 0:
+#             df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = df_opt_type[OCl.STRIKE.nm] - leg.strike + \
+#                                                           (df_opt_type[OCl.PRICE.nm]) - premium
+#             # df_opt_type.loc[df_opt_type[OCl.STRIKE.nm] <= leg.strike,
+#             # RCl.RISK_PNL_PREMIUM.nm] = df_opt_type[OCl.STRIKE.nm] - leg.strike + \
+#             #                            (df_opt_type[OCl.PRICE.nm]) - premium
+#             df_opt_type.loc[df_opt_type[RCl.RISK_PNL_PREMIUM.nm] < -premium, RCl.RISK_PNL_PREMIUM.nm] = -premium
+#             # df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type[OCl.STRIKE.nm] + df_opt_type[
+#             #     OCl.PRICE.nm] - leg.strike - premium) * leg.lots
+#             # loss_strike_filter = df_opt_type[OCl.STRIKE.nm] <= leg.strike
+#             # df_opt_type.loc[loss_strike_filter, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type.loc[
+#             #                                                                     loss_strike_filter, OCl.PRICE.nm] -
+#             #                                                                 (leg.strike - df_opt_type.loc[
+#             #                                                                     loss_strike_filter, OCl.STRIKE.nm])
+#             #                                                                 - premium) * leg.lots
+#         else:
+#             df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = premium - (df_opt_type.loc[:, OCl.STRIKE.nm] - leg.strike)
+#             df_opt_type.loc[df_opt_type[OCl.STRIKE.nm] <= leg.strike, RCl.RISK_PNL_PREMIUM.nm] = premium
+#
+#
+#     else:
+#         df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] = (leg.strike - df_opt_type[OCl.STRIKE.nm] + df_opt_type[
+#             OCl.PRICE.nm] - premium) * leg.lots
+#         loss_strike_filter = df_opt_type[OCl.STRIKE.nm] >= leg.strike
+#         df_opt_type.loc[loss_strike_filter, RCl.RISK_PNL_PREMIUM.nm] = (df_opt_type.loc[
+#                                                                             loss_strike_filter, OCl.PRICE.nm] -
+#                                                                         (df_opt_type.loc[
+#                                                                              loss_strike_filter, OCl.STRIKE.nm] - leg.strike)
+#                                                                         - premium) * leg.lots
+#         df_opt_type.loc[
+#             df_opt_type[RCl.RISK_PNL_PREMIUM.nm] < -premium * leg.lots, RCl.RISK_PNL_PREMIUM.nm] = -premium * leg.lots
+#     df_opt_type = _calc_profile(df_opt_type, leg, premium) # TODO remove
+#     df_opt_type.loc[:, RCl.RISK_PNL_PREMIUM.nm] *= abs(leg.lots)
+#     return df_opt_type
+# ─────────────────────────────────────────────────────────────────────────────────────
 
 
 def _chain_leg_expiration_risk_profile(df_chain: pd.DataFrame, leg: OptionsLeg) -> pd.DataFrame:
@@ -98,8 +130,7 @@ def _chain_leg_expiration_risk_profile(df_chain: pd.DataFrame, leg: OptionsLeg) 
         if premium_df.empty:
             raise ValueError(f'Data for strike {leg.strike} for and option type {leg.type.value} absent')
         premium = premium_df.iloc[0][OCl.PRICE.nm]
-        df = _calc_profile(df, leg, premium)
-        # df = _calc_premium_profile(df, leg, premium)
+        df = _calc_premium_profile(df, leg, premium)
     df.drop(columns=[col for col in df.columns if col not in [OCl.STRIKE.nm, RCl.RISK_PNL.nm,
                                                               RCl.RISK_PNL_PREMIUM.nm]],
             inplace=True)
@@ -127,11 +158,13 @@ def chain_payoff(df_chain: pd.DataFrame,
     df_legs_risk_profile = pd.concat(legs_dfs, axis='rows', ignore_index=True) if len(legs_dfs) > 1 else legs_dfs[0]
     df_legs_risk_profile.sort_values(by=[OCl.STRIKE.nm, RCl.LEG_ID.nm], inplace=True)
     df_risk_profile = df_legs_risk_profile.groupby(OCl.STRIKE.nm, group_keys=False)[
-        [RCl.RISK_PNL.nm]] \
-        .agg({RCl.RISK_PNL.nm: 'sum'}) \
+        [RCl.RISK_PNL.nm, RCl.RISK_PNL_PREMIUM.nm]] \
+        .agg({RCl.RISK_PNL.nm: 'sum', RCl.RISK_PNL_PREMIUM.nm: 'sum'}) \
         .reset_index(drop=False)
+    # К ПРОВЕРКЕ / TO VERIFY (owner): aggregation now sums RISK_PNL_PREMIUM alongside
+    # RISK_PNL (2026-06-14). Original RISK_PNL-only aggregation preserved below:
     # df_risk_profile = df_legs_risk_profile.groupby(OCl.STRIKE.nm, group_keys=False)[
-    #     [RCl.RISK_PNL.nm, RCl.RISK_PNL_PREMIUM.nm]] \
-    #     .agg({RCl.RISK_PNL.nm: 'sum', RCl.RISK_PNL_PREMIUM.nm: 'sum'}) \
+    #     [RCl.RISK_PNL.nm]] \
+    #     .agg({RCl.RISK_PNL.nm: 'sum'}) \
     #     .reset_index(drop=False)
     return df_risk_profile, df_legs_risk_profile
