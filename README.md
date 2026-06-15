@@ -81,5 +81,9 @@ Architecture, design decisions, and development notes live in
 
 ## For AI agents
 
-Guidance for AI coding agents (Claude Code, Copilot, etc.) is in
-[AGENTS.md](AGENTS.md). [CLAUDE.md](CLAUDE.md) points to the same file.
+This project is built and operated **through AI agents**. The canonical, vendor-neutral
+entry point is [AGENTS.md](AGENTS.md) ([CLAUDE.md](CLAUDE.md) points to it). A session runs
+in one of two modes — **DESK** (operate on the market; the default) or **DEV** (build the
+codebase) — switchable by a plain-text signal. The full agent operating model (skills,
+tools, knowledge, guardrails, and the learn loop) is in
+[agents/README.md](agents/README.md).

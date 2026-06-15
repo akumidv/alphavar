@@ -13,9 +13,9 @@ from __future__ import annotations
 import json
 import os
 
-# This file is at agents/tools/exchange_fixtures/_record.py -> repo root is three up.
+# This file is at agents/_dev/tools/exchange_fixtures/_record.py -> repo root is four up.
 FIXTURES_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '..', '..', '..', 'tests', 'unit', 'exchange', 'fixtures')
+    os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'tests', 'unit', 'exchange', 'fixtures')
 )
 
 

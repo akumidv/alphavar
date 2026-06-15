@@ -48,7 +48,7 @@ This is a hard, always-on rule — it overrides "make the tests pass":
 - `DATA_PATH` is read from `test.env`; test artefacts (charts, dumps) go to the
   git-ignored `.tmp/` via the `tmp_output_dir` fixture.
 - Details and other operational gotchas:
-  [agents/memory/env-and-test-running.md](agents/memory/env-and-test-running.md).
+  [agents/_dev/memory/env-and-test-running.md](agents/_dev/memory/env-and-test-running.md).
 
 ## D4. Token efficiency — prefer tools implemented as code
 
@@ -65,6 +65,6 @@ as a real constraint, not an afterthought.
   path, not the contents).
 - When adding a capability an assistant will reuse, package it as code under the project
   (e.g. a `scripts/` CLI or a function) and document it in
-  [agents/tools/](agents/tools/) — do not rely on re-deriving it through ad-hoc steps.
-- Reuse existing knowledge: consult [agents/knowledge/](agents/knowledge/) and
-  [agents/memory/](agents/memory/) before re-researching from scratch.
+  [agents/_dev/tools/](agents/_dev/tools/) — do not rely on re-deriving it through ad-hoc steps.
+- Reuse existing knowledge: consult [agents/shared/knowledge/](agents/shared/knowledge/) and
+  [agents/_dev/memory/](agents/_dev/memory/) before re-researching from scratch.

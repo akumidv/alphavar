@@ -7,7 +7,7 @@ from alphavar.exchange._abstract_exchange import RequestClass
 from alphavar.exchange.moex import MoexExchange, MoexOptions, MoexAssetType
 from alphavar.options_lib.dictionary import OptionsColumns as OCl
 
-from agents.tools.exchange_fixtures._record import record, try_call
+from agents._dev.tools.exchange_fixtures._record import record, try_call
 
 ASSET = 'SI'
 

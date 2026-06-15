@@ -27,7 +27,7 @@ tool's code.
 ## Index
 
 - [`refresh-exchange-fixtures.md`](refresh-exchange-fixtures.md) — tool-driven: re-record
-  + trim the hermetic exchange HTTP fixtures (uses `agents/tools/exchange_fixtures` and
+  + trim the hermetic exchange HTTP fixtures (uses `agents/_dev/tools/exchange_fixtures` and
   `tests/utils/exchange_fixtures`).
 - [`add-exchange-source.md`](add-exchange-source.md) — knowledge: how to add a new
   exchange provider end-to-end (no single tool; an ordered pipeline across layers).
