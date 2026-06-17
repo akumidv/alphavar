@@ -10,7 +10,7 @@ change (not a code bug); or you added a new captured call in
 
 **Preconditions.**
 - Network access to the live venue APIs (recording step only).
-- `uv sync --all-extras` done. Recording reuses `alphavar.exchange` — do not write raw
+- `uv sync --all-extras` done. Recording reuses `alphavar.io.exchange` — do not write raw
   HTTP here.
 
 ## Steps

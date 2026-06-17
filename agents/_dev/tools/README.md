@@ -8,7 +8,7 @@ when code cannot do the job.
 Layout:
 - `<tool_pkg>/` — the executable code (importable package / `python -m …` CLI). It
   **reuses the project's own code** where possible (e.g. the exchange API in
-  `alphavar.exchange`) rather than re-implementing it. **The package/`__main__` docstring
+  `alphavar.io.exchange`) rather than re-implementing it. **The package/`__main__` docstring
   is the documentation** — purpose + the exact run command live there, next to the code.
 - A separate `<tool-name>.md` spec is **only** for tools whose config can't be read from
   the code: **MCP servers** (mirror the canonical config into a root `.mcp.json`) or
@@ -31,6 +31,6 @@ and repeated → make it a tool. If it is ordering/context/judgement → keep it
 
 - [`exchange_fixtures/`](exchange_fixtures/) (code; docs in its `__main__` docstring,
   run `python -m agents._dev.tools.exchange_fixtures`): record live exchange API responses
-  into hermetic test fixtures, reusing `alphavar.exchange`. Paired trimmer/mock live in
+  into hermetic test fixtures, reusing `alphavar.io.exchange`. Paired trimmer/mock live in
   `tests/utils/exchange_fixtures/` (test infrastructure, not an agent tool). Playbook:
   [`../skills/refresh-exchange-fixtures.md`](../skills/refresh-exchange-fixtures.md).

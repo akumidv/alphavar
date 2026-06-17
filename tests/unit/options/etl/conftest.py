@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 from cachetools import TTLCache, cached
 
-from alphavar.exchange import DeribitExchange
-from alphavar.options_lib.dictionary import Timeframe
+from alphavar.io.exchange import DeribitExchange
+from alphavar.options.dictionary import Timeframe
 from alphavar.core.dictionary import InstrumentKind
 from alphavar.options.etl.etl_class import AssetBookData, EtlOptions
 

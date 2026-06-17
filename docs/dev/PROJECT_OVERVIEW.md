@@ -51,99 +51,91 @@ loop routed through the build agent. Full model:
 ```
 alphavar/
 ├── src/
-│   ├── alphavar/   # PUBLIC API — the Option facade and its components
-│   │   ├── option_class.py          # Option class (main entry point)
-│   │   ├── option_data_class.py     # OptionData — data management
-│   │   ├── enrichment/              # OptionEnrichment
-│   │   ├── chain/                   # OptionChain
-│   │   ├── analytic/                # OptionAnalytic (risk + price)
-│   │   ├── chart/                   # ChartClass (Plotly)
-│   │   ├── pricer/                  # fair value calculation (stub)
-│   │   ├── forecast/                # price forecasting (stub)
-│   │   └── validation/              # data validation
-│   │
-│   ├── options_lib/         # BUSINESS LOGIC (implementation, no provider state)
-│   │   ├── dictionary/              # all enums and DataFrame column descriptions
-│   │   ├── entities/                # Pydantic entities (OptionsLeg, etc.)
-│   │   ├── enrichment/              # pure enrichment functions
-│   │   ├── chain/                   # chain selection, ATM/ITM/OTM, desk
-│   │   ├── normalization/           # price/date normalization, timeframe resampling
-│   │   ├── analytic/                # payoff (risk) + time values (price)
-│   │   └── chart/                   # chart data preparation
-│   │
-│   ├── provider/            # Data source abstraction
-│   │   ├── _abstract_provider_class.py   # AbstractProvider (interface)
-│   │   ├── _provider_entities.py         # RequestParameters
-│   │   └── _local_provider.py            # PandasLocalFileProvider (Parquet)
-│   │
-│   ├── exchange/            # Exchange implementations (inherit AbstractProvider)
-│   │   ├── _abstract_exchange.py    # AbstractExchange + RequestClass (httpx)
-│   │   ├── deribit.py               # DeribitExchange (crypto)
-│   │   ├── moex.py                  # MoexExchange (RU)
-│   │   ├── binance.py               # BinanceExchange
-│   │   ├── cache.py                 # API TTL cache
-│   │   ├── exchange_fabric.py       # ExchangeFabric (factory)
-│   │   └── exchange_provider_factory.py
-│   │
-│   ├── options/etl/         # ETL — accumulating quote snapshots
-│   │   ├── etl_class.py             # EtlOptions (base, APScheduler)
-│   │   ├── deribit_etl.py           # EtlDeribit
-│   │   ├── moex_etl.py              # EtlMoex
-│   │   └── etl_updates_to_history.py
-│   │
-│   └── messanger/           # Notifications (Telegram / console)
+│   └── alphavar/
+│       ├── core/            # domain-NEUTRAL base
+│       │   ├── dictionary/          # plain-string column registry (Col) + classification axes
+│       │   └── migration/           # parquet schema migration (dictionary v2)
+│       │
+│       ├── io/              # domain-NEUTRAL I/O infrastructure (R0)
+│       │   ├── provider/            # AbstractProvider, RequestParameters, PandasLocalFileProvider
+│       │   ├── exchange/            # AbstractExchange + Deribit/MOEX/Binance, cache, factories
+│       │   └── messanger/           # Telegram / console notifications
+│       │
+│       └── options/         # DOMAIN: options + futures — by layer, then function (R0)
+│           │                #   ── facade (stateful), flat at the domain root:
+│           ├── option_class.py          # Option (main entry point)
+│           ├── option_data_class.py     # OptionData — data management
+│           ├── enrichment_class.py      # OptionEnrichment
+│           ├── chain_class.py           # OptionChain
+│           ├── analytic_class.py        # OptionAnalytic  (+ analytic_price_class, analytic_risk_class)
+│           ├── chart_class.py           # ChartClass      (+ chart_price_class)
+│           │                #   ── domain foundation (used by every layer):
+│           ├── dictionary/              # column registry (v2) + legacy enums + classification axes
+│           ├── entities/                # Pydantic entities (OptionsLeg, …)
+│           ├── schemas/                 # pandera models (validation contracts)
+│           │                #   ── pure computational logic (DataFrame in/out, no I/O):
+│           ├── lib/
+│           │   ├── analytic/            # payoff (risk) + time values (price)
+│           │   ├── chain/               # chain selection, ATM/ITM/OTM, desk
+│           │   ├── chart/               # chart data preparation
+│           │   ├── enrichment/          # pure enrichment functions
+│           │   └── normalization/       # price/date normalization, timeframe resampling
+│           │                #   ── I/O orchestration:
+│           └── etl/                     # ETL — accumulating quote snapshots
 │
-├── tests/                   # pytest, see §9
+├── tests/                   # pytest, mirrors src/alphavar/ (see §9)
 ├── demo/                    # example notebooks (incl. for Google Colab)
 ├── docs/                    # documentation site (Next.js + Markdoc)
 │   └── dev/                 # development docs (this file)
+├── agents/                  # AI build/operate agents (knowledge, skills, tools)
 ├── pyproject.toml           # dependencies, pytest/pylint config
 ├── test.env                 # environment variables for tests
 ├── AGENTS.md                # guidance for AI agents (CLAUDE.md links here)
 └── README.md
 ```
 
-> ⚠️ **Note:** the library directory is named `src/options_lib/` (NOT `src/option_lib/`).
-> Follow the code if you see the outdated spelling `option_lib` anywhere.
-
 ---
 
 ## 3. Architecture: key layers
 
+The three-layer separation (R1) holds **inside each domain** (here `options`); `io/` and
+`core/` are domain-neutral and shared.
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  alphavar/  — the Option facade (stateful, public)       │
-│    Option → {OptionData, OptionEnrichment, OptionChain,   │
-│              OptionAnalytic, ChartClass}                  │
-└───────────────┬───────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  options/*_class.py  — facade (stateful, public), flat        │
+│    Option → {OptionData, OptionEnrichment, OptionChain,       │
+│              OptionAnalytic, ChartClass}                      │
+└───────────────┬───────────────────────────────────────────────┘
                 │ uses pure logic
-┌───────────────▼───────────────────────────────────────────┐
-│  options_lib/  — stateless functions (DataFrame in/out)    │
-│    dictionary, entities, enrichment, chain, normalization, │
-│    analytic, chart                                         │
-└───────────────┬───────────────────────────────────────────┘
-                │ obtains data through
-┌───────────────▼───────────────────────────────────────────┐
-│  provider/  — AbstractProvider (data source interface)     │
-│    ├─ PandasLocalFileProvider (Parquet files)              │
-│    └─ exchange/ — DeribitExchange, MoexExchange, Binance…  │
-└────────────────────────────────────────────────────────────┘
+┌───────────────▼───────────────────────────────────────────────┐
+│  options/lib/  — stateless functions (DataFrame in/out)        │
+│    analytic, chain, chart, enrichment, normalization           │
+│    (+ options/{dictionary,entities,schemas} — domain foundation)│
+└───────────────┬───────────────────────────────────────────────┘
+                │ obtains data through (injected provider)
+┌───────────────▼───────────────────────────────────────────────┐
+│  io/provider/  — AbstractProvider (data source interface)      │
+│    ├─ PandasLocalFileProvider (Parquet files)                  │
+│    └─ io/exchange/ — DeribitExchange, MoexExchange, Binance…   │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 **Separation principle:**
-- `alphavar/*` — stateful classes (hold the DataFrame, provider, parameters).
-- `options_lib/*` — pure functions/utilities that take and return a `pandas.DataFrame`.
-- `provider/` + `exchange/` — deliver raw data.
+- `options/*_class.py` — stateful facade classes (hold the DataFrame, provider, parameters).
+- `options/lib/*` — pure functions/utilities that take and return a `pandas.DataFrame`;
+  no I/O, no `io`/facade imports, no global state.
+- `io/provider/` + `io/exchange/` — deliver raw data (domain-neutral infrastructure).
 
 Keep this separation in mind when extending: **new computational logic goes into
-`options_lib`, a new data source goes into `provider`/`exchange`, and a convenient
-API method goes into `alphavar`.**
+`options/lib`, a new data source goes into `io/provider` / `io/exchange`, and a convenient
+API method goes into a facade `options/*_class.py`.**
 
 ---
 
 ## 4. Main facade — the `Option` class
 
-`src/alphavar/option_class.py`
+`src/alphavar/options/option_class.py`
 
 ```python
 class Option:
@@ -158,11 +150,11 @@ It aggregates five components (each receives the shared `OptionData` via DI):
 
 | Component | Class | File | Purpose |
 |-----------|-------|------|---------|
-| `data` | `OptionData` | `option_data_class.py` | load/store `df_hist`, `df_fut`, `df_chain` |
-| `enrichment` | `OptionEnrichment` | `enrichment/_enrichment_class.py` | computed columns |
-| `chain` | `OptionChain` | `chain/_chain_class.py` | chains, ATM/ITM/OTM, desk |
-| `analytic` | `OptionAnalytic` | `analytic/analytic_class.py` | risk (payoff) + time value |
-| `chart` | `ChartClass` | `chart/chart_class.py` | visualization (Plotly) |
+| `data` | `OptionData` | `options/option_data_class.py` | load/store `df_hist`, `df_fut`, `df_chain` |
+| `enrichment` | `OptionEnrichment` | `options/enrichment_class.py` | computed columns |
+| `chain` | `OptionChain` | `options/chain_class.py` | chains, ATM/ITM/OTM, desk |
+| `analytic` | `OptionAnalytic` | `options/analytic_class.py` | risk (payoff) + time value |
+| `chart` | `ChartClass` | `options/chart_class.py` | visualization (Plotly) |
 
 ### OptionData
 - Properties: `option_symbol`, `period_from`, `period_to`, `timeframe`.
@@ -189,10 +181,12 @@ It aggregates five components (each receives the shared `OptionData` via DI):
 
 ---
 
-## 5. Data dictionary (`options_lib/dictionary/`)
+## 5. Data dictionary (`options/dictionary/`)
 
 DataFrame columns are described by **enums** (not string literals) — use them when
-extending the code instead of "magic strings".
+extending the code instead of "magic strings". (A v2 plain-string registry — `core`'s
+`Col` + `options/dictionary` `OptionsCol` + pandera `schemas/` — runs in parallel and is
+the migration target; see T23.)
 
 | Enum | Values / purpose |
 |------|------------------|
@@ -217,7 +211,7 @@ OPTION_COLUMNS_DEPENDENCIES = {
 }
 ```
 
-**Key entity** (`options_lib/entities/`):
+**Key entity** (`options/entities/`):
 ```python
 class OptionsLeg(BaseModel):
     strike: float
@@ -229,7 +223,7 @@ class OptionsLeg(BaseModel):
 
 ## 6. Data providers
 
-### The `AbstractProvider` interface (`provider/_abstract_provider_class.py`)
+### The `AbstractProvider` interface (`io/provider/_abstract_provider_class.py`)
 ```python
 class AbstractProvider(ABC):
     exchange_code: str
@@ -245,7 +239,7 @@ class AbstractProvider(ABC):
     def load_options_chain(asset_code, settlement_datetime, expiration_date) -> pd.DataFrame | None: ...
 ```
 
-### `RequestParameters` (`provider/_provider_entities.py`)
+### `RequestParameters` (`io/provider/_provider_entities.py`)
 ```python
 class RequestParameters(BaseModel):
     period_from: int | date | datetime | None = None
@@ -254,14 +248,14 @@ class RequestParameters(BaseModel):
 ```
 
 ### Implementations
-- **`PandasLocalFileProvider`** (`provider/_local_provider.py`) — Parquet from disk.
+- **`PandasLocalFileProvider`** (`io/provider/_local_provider.py`) — Parquet from disk.
   Path structure: `{exchange_code}/{asset_code}/{asset_kind}/{timeframe}/{year}.parquet`.
-- **`AbstractExchange`** (`exchange/_abstract_exchange.py`) — subclass of `AbstractProvider`
+- **`AbstractExchange`** (`io/exchange/_abstract_exchange.py`) — subclass of `AbstractProvider`
   with a `RequestClass` (httpx) and `request_api(endpoint_path, signed=False, **kwargs)`.
-  - `DeribitExchange` (`deribit.py`) — crypto futures/options/spot (+ combo).
-  - `MoexExchange` (`moex.py`) — MOEX ISS option-calc.
-  - `BinanceExchange` (`binance.py`).
-- Cache: `exchange/cache.py` — TTL cache (128 items, reset at midnight).
+  - `DeribitExchange` (`io/exchange/deribit.py`) — crypto futures/options/spot (+ combo).
+  - `MoexExchange` (`io/exchange/moex.py`) — MOEX ISS option-calc.
+  - `BinanceExchange` (`io/exchange/binance.py`).
+- Cache: `io/exchange/cache.py` — TTL cache (128 items, reset at midnight).
 - Factories: `ExchangeFabric`, `ExchangeProviderFactory`.
 
 ---
@@ -285,13 +279,15 @@ Accumulation of quote snapshots on a schedule (APScheduler).
 
 ## 8. Dependencies (`pyproject.toml`)
 
-**Core:** `pandas ^2.2.3`, `pydantic ^2.10.5`, `pyarrow ^21`, `httpx ^0.28.1`,
-`matplotlib ^3.9`, `chart-studio ^1.1`, `cachetools 6.2.0`, `python-dotenv ^1`.
+**Core:** `pandas >=2.2.3`, `numpy >=2.1`, `pandera >=0.20`, `pydantic >=2.10.5`,
+`pyarrow >=21`, `httpx >=0.28.1`, `plotly >=5.24`, `matplotlib >=3.9`,
+`cachetools ==6.2.0`, `psutil >=6.0`, `python-dotenv >=1`.
 
-**Groups (optional):**
-- `etl`: `apscheduler ^3.11`
-- `dev`: `setuptools`, `jupyter`, `pylint`
-- `test`: `pytest`, `pytest-asyncio`, `pytest-dotenv`
+**Extra / groups:**
+- `etl` (optional-dependency extra): `apscheduler >=3.11` — `uv sync --extra etl` /
+  `pip install 'alphavar[etl]'`
+- `dev` group: `setuptools`, `jupyter`, `pylint`, `twine`
+- `test` group: `pytest`, `pytest-asyncio`, `pytest-dotenv`
 
 Install: `uv sync --all-extras`
 
@@ -299,7 +295,8 @@ Install: `uv sync --all-extras`
 
 ## 9. Tests
 
-- Directory `tests/unit/{etl,exchange,provider,messanger}/`.
+- `tests/unit/` mirrors `src/alphavar/`: `core/`, `io/{exchange,provider,messanger}/`,
+  `options/` (facade tests flat) + `options/{dictionary,entities,schemas,lib,etl}/`.
 - pytest config (`pyproject.toml`): `pythonpath=["src"]`, `env_files=["test.env"]`,
   `testpaths=["tests"]`.
 - Main fixtures (`tests/conftest.py`): `data_path`, `exchange_provider`
@@ -326,17 +323,19 @@ pylint (`max-line-length=120`, `max-args=8`, `max-positional-arguments=6`).
 
 | Task | Where to change | How |
 |------|-----------------|-----|
-| Add a new data source | `src/exchange/` | a new subclass of `AbstractExchange`, implement the abstract methods; register it in the factories |
-| Add a computed column | `options_lib/enrichment/` + `dictionary/_dataframe_columns.py` | a new function + an entry in `OptionsColumns` and, if needed, in `OPTION_COLUMNS_DEPENDENCIES`; wire it into `OptionEnrichment` |
-| New analytics | `options_lib/analytic/` + a wrapper in `alphavar/analytic/` | a pure function over a DataFrame + a facade method |
-| New chart type | `options_lib/chart/` + `alphavar/chart/` | data preparation + a render method |
+| Add a new data source | `src/alphavar/io/exchange/` | a new subclass of `AbstractExchange`, implement the abstract methods; register it in the factories |
+| Add a computed column | `options/lib/enrichment/` + `options/dictionary/_dataframe_columns.py` | a new function + an entry in `OptionsColumns` and, if needed, in `OPTION_COLUMNS_DEPENDENCIES`; wire it into `OptionEnrichment` |
+| New analytics | `options/lib/analytic/` + a facade `options/analytic_class.py` | a pure function over a DataFrame + a facade method |
+| New chart type | `options/lib/chart/` + facade `options/chart_class.py` | data preparation + a render method |
 | New ETL source | `options/etl/` | a subclass of `EtlOptions` |
-| Notification channel | `messanger/` | a subclass of `AbstractMessanger` |
+| Notification channel | `io/messanger/` | a subclass of `AbstractMessanger` |
 
 **Code conventions:**
 - DataFrame columns — only via the `OptionsColumns`/`FuturesColumns` enums, not strings.
 - Pydantic models for entities and request parameters.
-- Pure logic (no I/O or state) lives in `options_lib`; state and the provider live in `alphavar`.
+- Pure logic (no I/O or state) lives in `options/lib`; state and the provider live in the
+  facade `options/*_class.py`; I/O lives in `io/`.
+- Absolute imports only — no relative (`from .`/`from ..`) imports.
 - Lines ≤ 120 characters; docstrings are not required for private (`_`) and test (`test_`) functions.
 
 ---
@@ -344,17 +343,21 @@ pylint (`max-line-length=120`, `max-args=8`, `max-positional-arguments=6`).
 ## 12. Known caveats / TODO for future work
 
 - The project is at an early development stage — the public API is unstable.
-- `pricer/`, `forecast/`, `validation/` in `alphavar/` are stubs and need filling in.
+- `pricer`, `forecast`, `validation` are **planned** facade components (R3/T21) — not yet
+  present; when added they live as `options/*_class.py` over the shared `OptionData`.
 - `BinanceExchange` is a minimal implementation.
+- The v1 dictionary enums and the v2 `Col`/`OptionsCol` registry + pandera schemas run in
+  parallel until the T23 migration completes.
 
 ---
 
 ## 13. Quick start for an AI assistant (Copilot, etc.)
 
 1. The source of truth on architecture is this file + the code in `src/`. `AGENTS.md` is the guidance for AI agents (`CLAUDE.md` links to it).
-2. Start reading from `src/alphavar/option_class.py` (the facade) and
-   `src/options_lib/dictionary/` (the column and enum dictionary).
+2. Start reading from `src/alphavar/options/option_class.py` (the facade) and
+   `src/alphavar/options/dictionary/` (the column and enum dictionary).
 3. Before changing data logic, check `OPTION_COLUMNS_DEPENDENCIES`.
-4. For a new exchange, copy the pattern in `src/exchange/deribit.py`.
-5. Tests are required: place them in `tests/unit/<area>/` and reuse existing fixtures.
+4. For a new exchange, copy the pattern in `src/alphavar/io/exchange/deribit.py`.
+5. Tests are required: place them in `tests/unit/<area>/` mirroring `src/alphavar/`, and
+   reuse existing fixtures.
 6. Verify with `pytest` and `pylint src/` before committing.

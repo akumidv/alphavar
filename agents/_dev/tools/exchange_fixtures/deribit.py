@@ -1,12 +1,12 @@
 """Deribit fixture recording — declares which Deribit calls to capture.
 
-Reuses the real `alphavar.exchange.deribit` API (no re-implemented requests). Currency
+Reuses the real `alphavar.io.exchange.deribit` API (no re-implemented requests). Currency
 `BTC` matches the test fixtures. Note: Deribit rejects ``kind=options`` (the venue wants
 singular ``option``) — see the backlog item on splitting project enums from API enums;
 the bad call is skipped best-effort.
 """
-from alphavar.exchange._abstract_exchange import RequestClass
-from alphavar.exchange.deribit import DeribitExchange, DeribitMarket, DeribitAssetKind
+from alphavar.io.exchange._abstract_exchange import RequestClass
+from alphavar.io.exchange.deribit import DeribitExchange, DeribitMarket, DeribitAssetKind
 
 from agents._dev.tools.exchange_fixtures._record import record, try_call
 

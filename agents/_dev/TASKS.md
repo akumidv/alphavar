@@ -15,8 +15,8 @@
 **T23 foundation (2026-06-13):** `core/dictionary` (`Col` plain-str registry) +
 `options/dictionary` (`OptionsCol`, classification `StrEnum` axes), pandera schemas
 (mixins + entity models, `category` dtype), parquet migration (`core/migration`,
-`dictionary_v2` CLI). **Not yet integrated** — old `options_lib` still runs in parallel;
-production code not migrated to the registry.
+`dictionary_v2` CLI). **Not yet integrated** — the legacy v1 column enums still run in
+parallel (now under `options/dictionary`); production code not migrated to the registry.
 
 Full historical detail for the closed items lives in git history of this file.
 
@@ -31,8 +31,15 @@ guarded baseline; then Block B integrates the T23 registry; Block C parallelizes
    (owner D2 verification) → **T15** (CI). Unblocks safe refactors and guards regressions.
 2. **Block B — finish the core (T23):** integrate the registry (`OCl.X.nm`→`Col.X`, drop
    old enums), T23.6 (price/IV model), T23.7/8/9 (naming), **T25** (reference data /
-   metadata), merge `options_lib`+`options_etl` → `alphavar.options` (R0). On the green
-   baseline.
+   metadata). On the green baseline.
+
+**Done — R0 package restructure (2026-06-17):** `provider`/`exchange`/`messanger` →
+`alphavar.io`; `options_lib`+`options_etl`+root facade merged into `alphavar.options`,
+laid out by layer then function (facade `*_class.py` at root; `dictionary`/`entities`/
+`schemas` foundation; `lib/` pure logic; `etl/`). Tests mirror the new tree. R0/R1/R2/R4
+in ARCHITECTURE_REQUIREMENTS + the AGENTS.md source map updated; D1 gains an
+absolute-imports-only rule. pytest/pylint unchanged from baseline. **Remaining doc sync:**
+`docs/dev/PROJECT_OVERVIEW.md` still describes the old tree (T16).
 3. **Block C — independent improvements:** T12, T13, T14, T16, T17, T18, T19, T20, T24.
    Any time.
 
@@ -47,7 +54,7 @@ integration`.
 - **Exchange network eliminated.** Recorded real Deribit+MOEX responses, replayed via
   `httpx.MockTransport`. Tooling: `agents/_dev/tools/exchange_fixtures/` (recorder) +
   `tests/utils/exchange_fixtures/{trim,mock}.py`; fixtures under
-  `tests/unit/exchange/fixtures/<exch>/` (keyed by path+query, stores HTTP status,
+  `tests/unit/io/exchange/fixtures/<exch>/` (keyed by path+query, stores HTTP status,
   trimmed ~40–50 kB/exch). Exchange suite 100+s → ~1.8s. Heavy multi-asset walks marked
   `@pytest.mark.integration`; default run is `-m 'not integration'`.
 - **Remaining:** data/parquet fixtures (DATA_PATH) for non-exchange tests
@@ -123,8 +130,9 @@ exchange data; the venue's real values get an `exch_` prefix; no `fair_*` pair.
   empty — decide the interim behavior.
 
 ### T23.7. Pluralize collection identifiers (R4.1)
-Rename `BookData.option`/`.future` → `.options`/`.futures` (`exchange/_abstract_exchange.py`)
-and the `option = []` accumulator in `moex.py:304`. Audit that no bare singular
+Rename `BookData.option`/`.future` → `.options`/`.futures`
+(`io/exchange/_abstract_exchange.py`) and the `option = []` accumulator in
+`io/exchange/moex.py`. Audit that no bare singular
 `option`/`future` denotes a single entity (`option_type` etc. stay singular). Mechanical;
 do alongside T23.1.
 
@@ -169,16 +177,18 @@ broadcast as constant columns.
   parquet into the new reference files.
 
 ### Merge `options_lib` + `options_etl` → `alphavar.options` (R0)
-Currently `options_lib`, `options`, and `options_etl` coexist under `src/alphavar/`. Once
-the registry is integrated, fold the lib + ETL into a single `alphavar.options` package per
-R0. Do on the green baseline, after T23.1.
+**Done (2026-06-17):** folded `options_lib` (→ `options/lib` + `options/{dictionary,
+entities}`) and `options_etl` (→ `options/etl`) plus the root facade into `alphavar.options`,
+laid out by layer then function; `provider`/`exchange`/`messanger` → `alphavar.io`. Tests
+mirror the new tree; docs (R0/R1/R2/R4, AGENTS.md, PROJECT_OVERVIEW) synced. The remaining
+T23 work (registry adoption, drop the v1 enums) is independent of the physical layout.
 
 ---
 
 ## Block C — independent improvements
 
 ### T12. Replace the custom `Cache` with `cachetools`
-`exchange/cache.py` has serious concurrency flaws: `_lock()` ignores acquisition timeout
+`io/exchange/cache.py` has serious concurrency flaws: `_lock()` ignores acquisition timeout
 (proceeds unlocked after 1 s), `_unlock()` can release another thread's lock, bare
 `except:` everywhere, `sys.getsizeof(df)` mis-measures DataFrame memory (use
 `df.memory_usage(deep=True).sum()`), a DataFrame used as a concurrent metadata index.
@@ -194,11 +204,12 @@ Remove the 4× duplicated imports (lines 4-21). Reconsider the silent `dropna(su
 inside the `df_hist` getter — make it explicit (parameter or documented enrichment step).
 
 ### T16. Sync documentation with the post-rename layout
-`AGENTS.md` and `docs/dev/PROJECT_OVERVIEW.md` still describe `src/options_lib/`,
-`src/exchange/`, `src/provider/`, `src/options_etl/` as top-level packages — they live under
-`src/alphavar/` now. PROJECT_OVERVIEW also lists `pricer/`, `forecast/`, `validation/`
-facades that do not exist — mark planned or remove. Mention `ARCHITECTURE_REQUIREMENTS.md`
-and `TASKS.md` from `AGENTS.md`.
+**Done (2026-06-17):** synced to the R0 restructure (`io/`, `options/` by layer/function) —
+`AGENTS.md` source map; R0/R1/R2/R4 in `ARCHITECTURE_REQUIREMENTS.md`; `PROJECT_OVERVIEW.md`
+(repo map, layer diagram, facade/dictionary/provider paths, deps, tests, extension table,
+quick start; absent `pricer`/`forecast`/`validation` marked planned per R3/T21); the
+`agents/shared/knowledge` + `agents/_dev/tools`/`skills` code pointers (`alphavar.io.*`,
+`options/lib/*`). Repo-wide scan clean (only dated TASKS.md history retains old paths).
 
 ### T17. Repository hygiene
 - Delete the untracked AI-chat artifact `options_pricing_backend.py` at the repo root
@@ -237,10 +248,10 @@ by masks. Overlaps T24.
 ### T24. Polars readiness (R8)
 Preparatory steps while still on pandas:
 - Fix `DataEngine.POLARIS = "polaris"` → `POLARS = "polars"`
-  (`provider/_provider_entities.py:14`).
+  (`io/provider/_provider_entities.py`).
 - Remove engine-specific types from the dictionary's public contract (move dtype mapping to
   the per-engine schema layer from T23).
-- Audit `options_lib` for hard-to-port idioms (row-wise `apply`, index reliance,
+- Audit `options/lib` for hard-to-port idioms (row-wise `apply`, index reliance,
   `inplace=True`) — overlaps T20.
 
 ---
@@ -248,9 +259,9 @@ Preparatory steps while still on pandas:
 ## P3 — later
 
 ### T21. Fill the planned facade components
-`pricer/`, `forecast/`, `validation/` are described in the overview but absent. When
-implemented they must follow R3 (component class over shared `OptionData`, pure math in
-`options_lib`).
+`pricer`, `forecast`, `validation` are planned but absent. When implemented they must
+follow R3 (a facade component class `options/<name>_class.py` over the shared `OptionData`,
+with pure math in `options/lib`).
 
 ### T22. Windows portability of ETL
 `EtlOptions.HOST_NAME = os.uname()[1]` fails on Windows — use `platform.node()`.

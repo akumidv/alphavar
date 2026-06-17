@@ -3,7 +3,7 @@
 > Concentrated reference. Verify against live docs (drift). Sources:
 > [Binance API docs](https://developers.binance.com/docs) ·
 > [European Options API](https://developers.binance.com/docs/derivatives/option/general-info) ·
-> in-repo `src/alphavar/exchange/binance.py`.
+> in-repo `src/alphavar/io/exchange/binance.py`.
 
 - **APIs (separate base hosts):** spot `https://api.binance.com`, USDⓈ-M futures
   `https://fapi.binance.com`, COIN-M futures `https://dapi.binance.com`, **European

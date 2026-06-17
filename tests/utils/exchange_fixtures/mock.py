@@ -1,6 +1,6 @@
 """Replay recorded exchange fixtures via an httpx MockTransport (hermetic tests, T11).
 
-`mock_transport(name)` reads ``tests/unit/exchange/fixtures/<name>/index.json`` (path+query
+`mock_transport(name)` reads ``tests/unit/io/exchange/fixtures/<name>/index.json`` (path+query
 -> body file) and returns an ``httpx.MockTransport`` that serves those bodies. Used by the
 exchange-test conftest so the suite never hits a live API.
 """
@@ -12,7 +12,7 @@ import os
 import httpx
 
 FIXTURES_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'unit', 'exchange', 'fixtures')
+    os.path.join(os.path.dirname(__file__), '..', '..', 'unit', 'io', 'exchange', 'fixtures')
 )
 
 

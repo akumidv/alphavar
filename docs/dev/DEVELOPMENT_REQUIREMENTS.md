@@ -15,6 +15,10 @@
 - `pytest` and `pylint src/` must pass before merging to `main`.
 - Python ≥ 3.11, line length ≤ 120, Pydantic models for entities/parameters,
   docstrings required except `_private`/`test_` functions.
+- **Absolute imports only.** Relative imports (`from .`, `from ..`) are forbidden —
+  every import uses the full package path (`from alphavar.io.exchange.deribit import …`).
+  This keeps imports stable across package moves and makes the layer/domain of every
+  dependency explicit at the import site.
 - A test that requires not-yet-implemented logic is marked
   `@pytest.mark.xfail(reason="pending <task>: …", strict=False)` (not deleted/skipped) so
   it keeps running and flips to XPASS once the logic lands. Reference the task.

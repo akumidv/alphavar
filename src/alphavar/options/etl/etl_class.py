@@ -17,11 +17,11 @@ except ImportError as err:  # apscheduler is an optional extra
         "alphavar ETL requires APScheduler. Install the 'etl' extra: "
         "pip install 'alphavar[etl]' (or: poetry install --with etl)."
     ) from err
-from alphavar.options_lib.dictionary import Timeframe
+from alphavar.options.dictionary import Timeframe
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.options_lib.normalization import validate_path_segment
-from alphavar.exchange import AbstractExchange
-from alphavar.messanger import AbstractMessanger, StandardMessanger
+from alphavar.options.lib.normalization import validate_path_segment
+from alphavar.io.exchange import AbstractExchange
+from alphavar.io.messanger import AbstractMessanger, StandardMessanger
 
 
 @dataclass

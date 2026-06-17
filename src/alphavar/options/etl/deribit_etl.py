@@ -3,13 +3,13 @@ import datetime
 import pandas as pd
 from dataclasses import dataclass
 from alphavar.options.etl.etl_class import EtlOptions, AssetBookData, SaveTask
-from alphavar.options_lib.dictionary import (
+from alphavar.options.dictionary import (
     Timeframe,
     OptionsColumns as OCl,
     OPTION_NON_SPOT_COLUMN_NAMES, OPTION_NON_FUTURES_COLUMN_NAMES
 )
-from alphavar.exchange import DeribitExchange, DeribitAssetKind, DERIBIT_COLUMNS_TO_CURRENCY
-from alphavar.messanger import AbstractMessanger
+from alphavar.io.exchange import DeribitExchange, DeribitAssetKind, DERIBIT_COLUMNS_TO_CURRENCY
+from alphavar.io.messanger import AbstractMessanger
 
 
 @dataclass

@@ -10,65 +10,82 @@
 > [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md). The remediation backlog is maintained
 > outside this repository, alongside `ALPHAVAR_NAMING.md`.
 
-## R0. Package layout: domain-first, then functional (target)
+## R0. Package layout: domain-first, then by layer, then by function
 
 `alphavar` will grow beyond options/futures (equities, bonds, …). The top-level split is
-therefore **by domain**, and *within* a domain by function (layer). A thin domain-neutral
-base sits under the domains. This is the target layout; the current tree
-(`options_lib`, `options_etl`, plus functional packages) migrates toward it.
+**by domain**; *inside* a domain the split is **by layer, then by function within the
+pure-logic layer**. A thin domain-neutral base sits under the domains.
 
 ```
 alphavar/
   core/        # domain-NEUTRAL base: shared dictionary registry, normalization,
                #   base entities, schema mixins, path-safety. No domain math.
   io/          # data infrastructure, domain-neutral: provider/, exchange/, messanger/
-  options/     # DOMAIN: options + futures (today's options_lib + options_etl, merged).
-               #   Inside, by function: dictionary/ enrichment/ chain/ analytic/ chart/
-               #   etl/ entities/ — plus the facade (Option and its components).
-  equity/      # future domain (own math)
+  options/     # DOMAIN: options + futures. Inside, BY LAYER then function:
+               #   <name>_class.py   — facade (Option + its components), flat at the domain
+               #                       root; stateful, holds OptionData / the provider.
+               #   dictionary/ entities/ schemas/
+               #                     — domain foundation: column vocabulary, entities,
+               #                       validation contracts (used by every layer).
+               #   lib/              — pure computational logic (DataFrame in/out, no I/O;
+               #                       the Polars-port target, R8), by function:
+               #                       analytic/ chain/ chart/ enrichment/ normalization/
+               #   etl/              — I/O orchestration (uses io/ providers).
+  equity/      # future domain (own math, same internal shape)
   bond/        # future domain
 ```
 
 - **Why domain-first:** the math of options ≠ equities ≠ bonds; keeping each domain's
   logic, ETL and analytics together makes "add a new asset class = add a package"
   true, and a domain is visible from the tree (screaming architecture).
+- **Why layer-then-function inside a domain:** the three-layer separation (R1) is made
+  physical, so the boundary is visible in the tree and enforceable by import rules. The
+  facade (stateful classes) sits flat at the domain root; the pure-logic layer is the
+  `lib/` package and is organized by function inside it; `etl/` is the I/O-orchestration
+  layer. `dictionary/`/`entities/`/`schemas/` are the shared domain foundation that every
+  layer depends on, so they sit at the domain root, above `lib/`.
+- **`lib/` is pure:** functions are `DataFrame` in → `DataFrame` out, with no I/O, no
+  network, no provider/exchange imports, no facade imports, no global mutable state. This
+  is what makes it the strategic Polars-port target (R8) and independently extractable.
+  Import direction inside a domain is one-way: facade → `lib/` → (data via injected
+  provider from `io/`); `etl/` orchestrates I/O on top.
 - **What stays neutral (not in a domain):** `core/` (shared identity/dictionary,
   normalization, base entities — see R4.x; "core + domain extensions") and `io/`
   (an exchange returns options, futures, and tomorrow equities — it is infrastructure,
   not a domain).
 - **Naming:** the first domain keeps the recognizable name `options` (not
   `derivatives`), package `alphavar.options`. This aligns with the family pattern
-  recorded in `ALPHAVAR_NAMING.md` (`alphavar.<domain>`). The legacy `options_lib` /
-  `options_etl` are the seed of this domain package, just named by the narrow concretes;
-  they fold into `alphavar.options` (logic) and `alphavar.options.etl`.
-- The three-layer separation (R1) holds **inside each domain**: facade → pure logic →
-  data (via injected provider from `io/`).
+  recorded in `ALPHAVAR_NAMING.md` (`alphavar.<domain>`).
+- **Every domain repeats this internal shape** (`<facade>_class.py` + `dictionary/`
+  `entities/` `schemas/` + `lib/` + `etl/`), so the layer of any module is readable from
+  its path regardless of domain.
 
 ## R1. Three-layer separation (core invariant)
 
 ```
-alphavar facade (stateful)  →  options_lib (pure functions)  →  provider/exchange (I/O)
+domain facade (stateful)  →  <domain>/lib (pure functions)  →  io.provider, io.exchange (I/O)
 ```
 
-1. **`src/alphavar/` (facade layer)** — stateful classes only: `Option`, `OptionData`,
-   `OptionEnrichment`, `OptionChain`, `OptionAnalytic`, `ChartClass`. They hold
-   DataFrames, the provider reference, and request parameters. They contain **no
-   computational business logic** — they orchestrate and delegate.
-2. **`src/alphavar/options_lib/` (logic layer)** — pure, stateless functions and
-   Pydantic entities: `DataFrame` in → `DataFrame` out. **No I/O, no network, no
-   provider/exchange imports, no global mutable state.**
-3. **`src/alphavar/provider/` + `src/alphavar/exchange/` (data layer)** — the only place
-   where I/O happens (files, HTTP). Exchanges implement `AbstractProvider` (via
-   `AbstractExchange`).
+1. **Facade layer — `src/alphavar/<domain>/*_class.py`** (e.g.
+   `options/option_class.py`, `options/chain_class.py`): stateful classes only —
+   `Option`, `OptionData`, `OptionEnrichment`, `OptionChain`, `OptionAnalytic`,
+   `ChartClass`. They hold DataFrames, the provider reference, and request parameters.
+   They contain **no computational business logic** — they orchestrate and delegate.
+2. **Logic layer — `src/alphavar/<domain>/lib/`** (e.g. `options/lib/`): pure, stateless
+   functions and Pydantic entities: `DataFrame` in → `DataFrame` out. **No I/O, no
+   network, no `io` (provider/exchange) imports, no facade imports, no global mutable
+   state.**
+3. **Data layer — `src/alphavar/io/provider/` + `src/alphavar/io/exchange/`** — the only
+   place where I/O happens (files, HTTP); domain-neutral infrastructure (R0). Exchanges
+   implement `AbstractProvider` (via `AbstractExchange`).
 
 Dependency direction is one-way: facade → logic → (data via injected provider).
-`options_lib` must never import from `alphavar` facade modules, `provider`, or
-`exchange`.
+`<domain>/lib` must never import from the domain facade modules or from `io`.
 
 ## R2. Provider pattern
 
 - Every data source implements `AbstractProvider`
-  (`provider/_abstract_provider_class.py`): `get_assets_list`,
+  (`io/provider/_abstract_provider_class.py`): `get_assets_list`,
   `get_asset_history_years`, `load_options_history`, `load_options_book`,
   `load_futures_history`, `load_futures_book`, `load_options_chain`.
 - File-based sources extend `AbstractFileProvider`; HTTP exchanges extend
@@ -128,10 +145,10 @@ new provider, no caller changes" rule.
 
 - DataFrame column names, option types, price statuses, asset kinds, timeframes, and
   currencies are referenced **only** through the enums in
-  `options_lib/dictionary/` (`OptionsColumns`, `FuturesColumns`, `SpotColumns`,
+  `options/dictionary/` (`OptionsColumns`, `FuturesColumns`, `SpotColumns`,
   `OptionsType`, `Timeframe`, …). String literals for columns are forbidden.
 - A new computed column requires: an `OptionsColumns` entry, the pure function in
-  `options_lib/enrichment/`, an entry in `OPTION_COLUMNS_DEPENDENCIES` when it depends
+  `options/lib/enrichment/`, an entry in `OPTION_COLUMNS_DEPENDENCIES` when it depends
   on other columns, and wiring in `OptionEnrichment`.
 
 ### R4.1 Naming: singular vs plural for `option`/`future`
@@ -159,8 +176,9 @@ classes are *the options market* / *the futures market* — established industry
 So the plural is the correct domain name, and it applies to **all identifier kinds**,
 not just variables:
 
-- **Packages / directories**: `options_lib`, `options_etl` (plural). A new asset-class
-  area follows suit.
+- **Packages / directories**: the domain package is plural (`options`; a future
+  `equity`/`bond`), as are collection subpackages (`entities/`). A new asset-class area
+  follows suit.
 - **Files / modules**: name by the entity in its domain-correct form
   (`option_class.py` describes a single `Option` *instrument* → singular is fine;
   a module about the options *dataset/market* uses plural).
@@ -440,18 +458,18 @@ first-class, queryable thing rather than redundant column noise.
 - **Strategic direction: Polars is the target dataframe engine** (Rust core; enables
   interop with related Rust projects). pandas is the current engine; the codebase must
   not deepen its pandas lock-in.
-- The column dictionary (`options_lib/dictionary/`) is **engine-neutral**: it defines
+- The column dictionary (`options/dictionary/`) is **engine-neutral**: it defines
   plain string names and engine-agnostic metadata. It must not import pandas/polars
   types as part of its public contract (engine-specific dtype mapping lives next to the
   schemas, not in the name registry).
 - DataFrame schemas (pandera) are defined per engine behind a common naming registry:
   `pandera.pandas` today, `pandera.polars` on migration — column names and checks carry
   over unchanged.
-- New code in `options_lib` should prefer constructs with direct polars equivalents
+- New code in `options/lib` should prefer constructs with direct polars equivalents
   (column-wise expressions, joins, group-by aggregations) and avoid hard-to-port idioms
   (row-wise `df.apply`, implicit index reliance, `inplace=True` mutation chains).
 - Engine selection goes through the existing `DataEngine` enum
-  (`provider/_provider_entities.py`); providers receive the engine explicitly.
+  (`io/provider/_provider_entities.py`); providers receive the engine explicitly.
 
 ---
 

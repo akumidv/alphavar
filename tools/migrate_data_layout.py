@@ -23,7 +23,7 @@ import os
 import sys
 
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.options_lib.dictionary import Timeframe
+from alphavar.options.dictionary import Timeframe
 
 # Legacy plural dir name -> canonical singular (matches provider._instrument_kind_segment).
 RENAME = {

@@ -2,16 +2,16 @@
 import datetime
 import pandas as pd
 from alphavar.options.etl.etl_class import EtlOptions, AssetBookData, SaveTask
-from alphavar.options_lib.dictionary import (
+from alphavar.options.dictionary import (
     Timeframe,
     OptionsColumns as OCl,
     FuturesColumns as FCl,
     SpotColumns as SCl,
 )
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.exchange import MoexExchange
-from alphavar.exchange.moex import MoexAssetType
-from alphavar.messanger import AbstractMessanger
+from alphavar.io.exchange import MoexExchange
+from alphavar.io.exchange.moex import MoexAssetType
+from alphavar.io.messanger import AbstractMessanger
 
 
 class EtlMoex(EtlOptions):

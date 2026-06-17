@@ -5,7 +5,7 @@
 Multi-leg structures: combine single-leg payoffs
 ([../payoffs/](../payoffs/README.md)) into a position with a target risk profile. In-repo:
 `payoff.py` `chain_payoff` sums per-strike P&L across legs; legs are `OptionsLeg`
-(`options_lib/entities/`).
+(`options/entities/`).
 
 > Source: Hull; [Investopedia: option strategies](https://www.investopedia.com/trading/options-strategies/).
 

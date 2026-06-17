@@ -1,11 +1,11 @@
 """MOEX fixture recording — declares which MOEX ISS calls to capture.
 
-Reuses the real `alphavar.exchange.moex` API. Asset `SI` matches the test fixtures
+Reuses the real `alphavar.io.exchange.moex` API. Asset `SI` matches the test fixtures
 (conftest `moex_asset_code`); the option series code is discovered from the live response.
 """
-from alphavar.exchange._abstract_exchange import RequestClass
-from alphavar.exchange.moex import MoexExchange, MoexOptions, MoexAssetType
-from alphavar.options_lib.dictionary import OptionsColumns as OCl
+from alphavar.io.exchange._abstract_exchange import RequestClass
+from alphavar.io.exchange.moex import MoexExchange, MoexOptions, MoexAssetType
+from alphavar.options.dictionary import OptionsColumns as OCl
 
 from agents._dev.tools.exchange_fixtures._record import record, try_call
 

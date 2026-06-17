@@ -73,18 +73,20 @@ The library follows a provider pattern: data sources plug in through the
 
 Everything lives under the single `src/alphavar/` package:
 
-- `src/alphavar/` — the `Option` facade and entry-point classes (`option_class.py`,
-  `option_data_class.py`)
 - `src/alphavar/core/` — domain-neutral base: dictionary registry, schema migration
-- `src/alphavar/options/` — options/futures domain (R0 target home):
-  - `dictionary/`, `schemas/` — column registry + pandera models
+- `src/alphavar/io/` — domain-neutral I/O infrastructure:
+  - `exchange/` — exchange-specific implementations
+  - `provider/` — data provider abstractions
+  - `messanger/` — notification channels
+- `src/alphavar/options/` — options/futures domain (R0), by layer then function:
+  - `*_class.py` — the `Option` facade and its components (`option_class.py`,
+    `option_data_class.py`, `chain_class.py`, `analytic_class.py`, …), flat at the root
+  - `dictionary/`, `entities/`, `schemas/` — domain foundation: column registry,
+    entities, pandera models
+  - `lib/` — pure, stateless logic (`analytic/`, `chain/`, `chart/`, `enrichment/`,
+    `normalization/`): DataFrame in → DataFrame out, no I/O
   - `etl/` — ETL processes for options data (`EtlOptions`, `EtlDeribit`, `EtlMoex`,
     `EtlHistory`)
-- `src/alphavar/options_lib/` — pure, stateless logic (entities, chain, normalization,
-  analytics) — being migrated into `options/`
-- `src/alphavar/exchange/` — exchange-specific implementations
-- `src/alphavar/provider/` — data provider abstractions
-- `src/alphavar/messanger/` — notification channels
 
 ## Common Development Commands
 

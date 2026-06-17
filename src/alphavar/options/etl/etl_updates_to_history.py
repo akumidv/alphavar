@@ -12,13 +12,13 @@ from collections import OrderedDict
 # import itertools
 # from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
-from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
+from alphavar.options.dictionary import Timeframe, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
 from alphavar.core.dictionary import InstrumentKind, ContractKind
-from alphavar.options_lib.normalization.timeframe_resample import DEFAULT_RESAMPLE_MODEL, convert_to_timeframe
-from alphavar.options_lib.normalization import validate_path_segment
-from alphavar.provider import PandasLocalFileProvider, RequestParameters
-from alphavar.exchange.exchange_entities import ExchangeCode
-from alphavar.exchange import AbstractExchange, get_exchange_class
+from alphavar.options.lib.normalization.timeframe_resample import DEFAULT_RESAMPLE_MODEL, convert_to_timeframe
+from alphavar.options.lib.normalization import validate_path_segment
+from alphavar.io.provider import PandasLocalFileProvider, RequestParameters
+from alphavar.io.exchange.exchange_entities import ExchangeCode
+from alphavar.io.exchange import AbstractExchange, get_exchange_class
 
 
 class EtlHistory:

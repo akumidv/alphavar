@@ -15,7 +15,7 @@ import os
 import re
 
 FIXTURES_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'unit', 'exchange', 'fixtures')
+    os.path.join(os.path.dirname(__file__), '..', '..', 'unit', 'io', 'exchange', 'fixtures')
 )
 
 # Rows kept per diversity group, per file. Test assets are force-kept.

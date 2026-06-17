@@ -5,18 +5,18 @@ import pytest
 import pandas as pd
 from functools import lru_cache
 
-from alphavar.options_lib.dictionary import LegType, Timeframe, OptionsColumns as OCl
+from alphavar.options.dictionary import LegType, Timeframe, OptionsColumns as OCl
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.options_lib.entities import OptionsLeg
-from alphavar.options_lib.enrichment import join_option_with_future
-from alphavar.options_lib.chain.chain_selector import select_chain, get_max_settlement_valid_expired_date
-from alphavar.options_lib.chain.price_status import get_chain_atm_strike
+from alphavar.options.entities import OptionsLeg
+from alphavar.options.lib.enrichment import join_option_with_future
+from alphavar.options.lib.chain.chain_selector import select_chain, get_max_settlement_valid_expired_date
+from alphavar.options.lib.chain.price_status import get_chain_atm_strike
 
-from alphavar.option_data_class import OptionData
-from alphavar.provider import PandasLocalFileProvider, RequestParameters
+from alphavar.options.option_data_class import OptionData
+from alphavar.io.provider import PandasLocalFileProvider, RequestParameters
 
-from alphavar.exchange.deribit import DeribitExchange
-from alphavar.exchange.moex import MoexExchange
+from alphavar.io.exchange.deribit import DeribitExchange
+from alphavar.io.exchange.moex import MoexExchange
 
 
 # Default to the repo-local `data/` (a developer symlink to the local market-data store),

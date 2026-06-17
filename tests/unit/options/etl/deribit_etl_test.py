@@ -2,10 +2,10 @@ import datetime
 
 import pandas as pd
 import pytest
-from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl
+from alphavar.options.dictionary import Timeframe, OptionsColumns as OCl
 
 from alphavar.options.etl.deribit_etl import EtlDeribit, DeribitAssetBookData
-from alphavar.exchange import DeribitExchange
+from alphavar.io.exchange import DeribitExchange
 
 
 class TestEtlDeribit(EtlDeribit):

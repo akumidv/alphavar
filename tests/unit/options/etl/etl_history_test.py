@@ -2,11 +2,11 @@ import datetime
 from functools import lru_cache
 import pandas as pd
 import pytest
-from alphavar.options_lib.dictionary import Timeframe
+from alphavar.options.dictionary import Timeframe
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.options_lib.dictionary import OptionsColumns as OCl
+from alphavar.options.dictionary import OptionsColumns as OCl
 from alphavar.options.etl.etl_updates_to_history import EtlHistory
-from alphavar.exchange.exchange_entities import ExchangeCode
+from alphavar.io.exchange.exchange_entities import ExchangeCode
 
 
 START_TS = None
