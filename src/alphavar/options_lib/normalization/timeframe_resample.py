@@ -54,7 +54,7 @@ def _resample_by_kind_type_or_exchange_symbol(df: pd.DataFrame, timeframe: Timef
     if group_columns is None:
         if by_exchange_symbol:
             # exchange symbol is uniq for each of futures or option contract and should be single for spot
-            group_columns = [OCl.ASSET_CODE.nm]
+            group_columns = [OCl.EXCH_SYMBOL.nm]
         else:
             group_columns = _get_group_columns_by_type(df)
         return _resample_by_kind_type_or_exchange_symbol(df,

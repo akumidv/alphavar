@@ -17,7 +17,8 @@ except ImportError as err:  # apscheduler is an optional extra
         "alphavar ETL requires APScheduler. Install the 'etl' extra: "
         "pip install 'alphavar[etl]' (or: poetry install --with etl)."
     ) from err
-from alphavar.options_lib.dictionary import Timeframe, AssetKind
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.exchange import AbstractExchange
 from alphavar.messanger import AbstractMessanger, StandardMessanger
@@ -157,7 +158,7 @@ class EtlOptions(ABC):
         print(report_text)
         self._messanger.send_message(report_text)
 
-    def get_updates_folder(self, asset_name: str, asset_kind: AssetKind | str, timeframe: Timeframe) -> str:
+    def get_updates_folder(self, asset_name: str, asset_kind: InstrumentKind | str, timeframe: Timeframe) -> str:
         """Return path to folder where all update should be stored"""
         validate_path_segment(asset_name, field='asset_name')
         return f'{self._update_data_path}/{self.exchange.exchange_code}/{asset_name}/' \
@@ -304,7 +305,7 @@ class EtlOptions(ABC):
                            f'{request_timestamp.strftime("%y-%m-%dT%H")}.parquet'
                 return f'{request_timestamp.year}/{request_timestamp.strftime("%y-%m-%d")}.parquet'
 
-    def get_timeframe_update_path(self, asset_name: str, asset_kind: AssetKind | str, request_timestamp: pd.Timestamp):
+    def get_timeframe_update_path(self, asset_name: str, asset_kind: InstrumentKind | str, request_timestamp: pd.Timestamp):
         """Get path for request datetime correspondent to timeframe"""
         base_path = self.get_updates_folder(asset_name, asset_kind, self._timeframe)
         update_folder = self.get_request_timeframe_file(self._timeframe, request_timestamp)
@@ -379,9 +380,9 @@ class EtlOptions(ABC):
         if asset name is None - than parse names from dataframe
         """
         fabric = {
-            'option': AssetKind.OPTIONS,
-            'future': AssetKind.FUTURES,
-            'spot': AssetKind.SPOT
+            'option': InstrumentKind.OPTION,
+            'future': InstrumentKind.FUTURE,
+            'spot': InstrumentKind.SPOT
         }
         request_timestamp = book_data.request_timestamp
         asset_name = book_data.asset_name

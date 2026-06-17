@@ -24,7 +24,7 @@ def test_option_class_df_opt(option_instance):
     assert all((col in PandasLocalFileProvider.options_columns for col in option_instance.df_hist.columns))
 
 
-@pytest.mark.xfail(reason="pending T23.6: committed test data is pre-dictionary-v2 "
+@pytest.mark.xfail(reason="pending T23.6: committed test data predates the current dictionary "
                           "(has exchange_price/exchange_iv); EXCHANGE_MARK_PRICE/IV don't "
                           "exist in it. Needs the dict<->data migration / new logic.",
                    strict=False)

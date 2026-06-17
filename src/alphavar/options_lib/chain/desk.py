@@ -20,8 +20,8 @@ def convert_chain_to_desk(df_chain, option_columns: list | None = None, future_c
                                           ] if col in df_chain.columns]
     future_columns = [col for col in future_columns if col in df_chain.columns]
 
-    df_hist_desk = df_chain[df_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.code][option_columns] \
-        .merge(df_chain[df_chain[OCl.OPTION_TYPE.nm] == OptionsType.PUT.code][option_columns],
+    df_hist_desk = df_chain[df_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.value][option_columns] \
+        .merge(df_chain[df_chain[OCl.OPTION_TYPE.nm] == OptionsType.PUT.value][option_columns],
                on=[OCl.TIMESTAMP.nm, OCl.EXPIRATION_DATE.nm, OCl.STRIKE.nm], suffixes=['_call', '_put'], how='outer')\
         .sort_values(by=OCl.STRIKE.nm)
     if future_columns:

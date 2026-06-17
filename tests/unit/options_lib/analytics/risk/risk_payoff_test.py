@@ -17,7 +17,7 @@ underlying_price = 385
 @pytest.fixture(name='mock_df_op_chain')
 def mock_df_op_chain_fixture():
     mock_df_op_chain = pd.DataFrame({
-        f'{OCl.OPTION_TYPE.nm}': [OptionsType.CALL.code] * 7 + [OptionsType.PUT.code] * 7,
+        f'{OCl.OPTION_TYPE.nm}': [OptionsType.CALL.value] * 7 + [OptionsType.PUT.value] * 7,
         f'{OCl.STRIKE.nm}': mock_strikes + mock_strikes,
         f'{OCl.PRICE.nm}': [303, 204, 105, 10, 6, 5, 4] + [7, 8, 9, 35, 119, 218, 317],
         f'{OCl.UNDERLYING_PRICE.nm}': [underlying_price] * 14
@@ -42,7 +42,7 @@ def _show_df(df, name, out_dir):
 def test_mock__get_premium(mock_df_op_chain):
     idx = 3
     strike = mock_strikes[idx]
-    premium = payoff._get_premium(mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.code],
+    premium = payoff._get_premium(mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.value],
                                   strike=strike)
     assert premium == mock_df_op_chain.iloc[idx][OCl.PRICE.nm]
 
@@ -52,7 +52,7 @@ def test__calc_profile_long_call(mock_df_op_chain, strike, tmp_output_dir):
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
-    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code]
+    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value]
     df_payoff = payoff._calc_profile(df_opt_type, leg, premium)
     payed_premium = -premium * leg.lots
     assert df_payoff[RCl.RISK_PNL.nm].min() == payed_premium
@@ -62,7 +62,7 @@ def test__calc_profile_long_call(mock_df_op_chain, strike, tmp_output_dir):
     assert df_payoff_greater_strike_price[df_payoff_greater_strike_price[RCl.RISK_PNL.nm] == premium].empty
     strike_sell = mock_strikes[-2]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == leg.strike) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value)].iloc[0]
     expected_profit_call = max(-premium,
                                (strike_sell - leg.strike - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
@@ -74,7 +74,7 @@ def test__calc_profile_short_call(mock_df_op_chain, strike, tmp_output_dir):
     lots = -2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
-    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code]
+    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value]
     df_payoff = payoff._calc_profile(df_opt_type, leg, premium)
     earned_premium = premium * abs(leg.lots)
     assert df_payoff[RCl.RISK_PNL.nm].max() == earned_premium
@@ -88,7 +88,7 @@ def test__calc_profile_long_put(mock_df_op_chain, strike, tmp_output_dir):
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_PUT)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
-    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code]
+    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value]
     df_payoff = payoff._calc_profile(df_opt_type, leg, premium)
     payed_premium = -premium * leg.lots
     assert df_payoff[RCl.RISK_PNL.nm].min() == payed_premium
@@ -98,7 +98,7 @@ def test__calc_profile_long_put(mock_df_op_chain, strike, tmp_output_dir):
     assert df_payoff_less_strike_price[df_payoff_less_strike_price[RCl.RISK_PNL.nm] == premium].empty
     strike_sell = mock_strikes[-2]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == leg.strike) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value)].iloc[0]
     expected_profit_call = max(-premium,
                                (leg.strike - strike_sell - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
@@ -110,7 +110,7 @@ def test__calc_profile_short_put(mock_df_op_chain, strike, tmp_output_dir):
     lots = -2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_PUT)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
-    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code]
+    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value]
     df_payoff = payoff._calc_profile(df_opt_type, leg, premium)
     earned_premium = premium * abs(leg.lots)
     assert df_payoff[RCl.RISK_PNL.nm].max() == earned_premium
@@ -124,7 +124,7 @@ def test__calc_premium_profile_long_call(mock_df_op_chain, strike, tmp_output_di
     lots = 2
     leg = OptionsLeg(strike=strike, lots=lots, type=LegType.OPTIONS_CALL)
     premium = payoff._get_premium(mock_df_op_chain, strike=leg.strike, leg_type=leg.type)
-    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code]
+    df_opt_type = mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value]
     df_payoff = payoff._calc_premium_profile(df_opt_type, leg, premium)
     payed_premium = -premium * leg.lots
     assert df_payoff[RCl.RISK_PNL.nm].min() == payed_premium
@@ -134,7 +134,7 @@ def test__calc_premium_profile_long_call(mock_df_op_chain, strike, tmp_output_di
     assert df_payoff_greater_strike_price[df_payoff_greater_strike_price[RCl.RISK_PNL.nm] == premium].empty
     strike_sell = mock_strikes[-2]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == leg.strike) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value)].iloc[0]
     expected_profit_call = max(-premium,
                                (strike_sell - leg.strike - row_buy[OCl.PRICE.nm])) * leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_call
@@ -153,7 +153,7 @@ def test_mock__chain_leg_payoff_call_itm(mock_df_op_chain, strike):
 
     strike_sell = mock_strikes[-2]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == leg.strike) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value)].iloc[0]
     expected_profit_call = max(premium,
                                (strike_sell - leg.strike - row_buy[OCl.PRICE.nm]) * leg.lots)
 
@@ -165,7 +165,7 @@ def test_mock__chain_leg_payoff_put_itm(mock_df_op_chain, strike):
     leg = OptionsLeg(strike=strike, lots=1, type=LegType.OPTIONS_PUT)
     df_payoff = payoff._chain_leg_expiration_risk_profile(mock_df_op_chain, leg)
 
-    premium = payoff._get_premium(mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code],
+    premium = payoff._get_premium(mock_df_op_chain[mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value],
                                   strike=leg.strike) * leg.lots * -1
     df_payoff_greater_fut_price = df_payoff[df_payoff[OCl.STRIKE.nm] >= leg.strike]
     assert df_payoff_greater_fut_price[df_payoff_greater_fut_price[RCl.RISK_PNL.nm] != premium].empty
@@ -174,7 +174,7 @@ def test_mock__chain_leg_payoff_put_itm(mock_df_op_chain, strike):
 
     strike_sell = mock_strikes[2]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == leg.strike) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == leg.type.value)].iloc[0]
     expected_profit_put = max(premium,
                               (leg.strike - strike_sell - row_buy[OCl.PRICE.nm]) * leg.lots)
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_put
@@ -184,7 +184,7 @@ def test_mock__chain_leg_payoff_future(mock_df_op_chain):
     df_payoff = payoff._chain_leg_expiration_risk_profile(mock_df_op_chain, mock_fut_leg)
     strike_sell = mock_strikes[-1]
     row_buy = mock_df_op_chain[(mock_df_op_chain[OCl.STRIKE.nm] == strike_sell) &
-                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.code)].iloc[0]
+                               (mock_df_op_chain[OCl.OPTION_TYPE.nm] == OptionsType.CALL.value)].iloc[0]
     expected_profit_fut = (strike_sell - row_buy[OCl.UNDERLYING_PRICE.nm]) * mock_fut_leg.lots
     assert df_payoff[df_payoff[OCl.STRIKE.nm] == strike_sell].iloc[0][RCl.RISK_PNL.nm] == expected_profit_fut
 

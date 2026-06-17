@@ -10,9 +10,26 @@ dataframe columns:
 import os
 import re
 from abc import ABC
-from alphavar.options_lib.dictionary import Timeframe, AssetKind
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.provider._abstract_provider_class import AbstractProvider
+
+
+# Legacy plural kind string -> canonical singular, for raw strings that may still carry the
+# old plural spelling. InstrumentKind values are already singular and pass through.
+_LEGACY_KIND_TO_SINGULAR: dict[str, str] = {
+    "options": InstrumentKind.OPTION.value,   # options -> option
+    "futures": InstrumentKind.FUTURE.value,   # futures -> future
+}
+
+
+def _instrument_kind_segment(asset_kind: 'InstrumentKind | str') -> str:
+    """Singular instrument-kind path segment (R4.5). Accepts an InstrumentKind or a raw
+    string (legacy plural or already-canonical singular)."""
+    if isinstance(asset_kind, InstrumentKind):
+        return asset_kind.value
+    return _LEGACY_KIND_TO_SINGULAR.get(asset_kind, asset_kind)
 
 
 class AbstractFileProvider(AbstractProvider, ABC):
@@ -30,36 +47,35 @@ class AbstractFileProvider(AbstractProvider, ABC):
         self.exchange_data_path = exchange_data_path
         super().__init__(exchange_code=exchange_code)
 
-    def get_assets_list(self, asset_kind: AssetKind) -> list[str]:
+    def get_assets_list(self, asset_kind: InstrumentKind) -> list[str]:
         """Prepare list of underlying assets symbols"""
         asset_codes: list[str] = []
         for symbol in os.listdir(self.exchange_data_path):
             asset_kinds: list[str] = os.listdir(
                 os.path.join(self.exchange_data_path, symbol)
             )
-            if asset_kind.value in asset_kinds:
+            if _instrument_kind_segment(asset_kind) in asset_kinds:
                 asset_codes.append(symbol)
         return asset_codes
 
     def _get_history_folder(
-        self, asset_code: str, asset_kind: AssetKind | str, timeframe: Timeframe | str
+        self, asset_code: str, asset_kind: InstrumentKind | str, timeframe: Timeframe | str
     ) -> str:
         validate_path_segment(asset_code, field='asset_code')
-        asset_kind_value: str = (
-            asset_kind if isinstance(asset_kind, str) else asset_kind.value
-        )
+        # Singular instrument-kind segment (ADR 0001); unknown kinds fall back to spot.
+        asset_kind_value: str = _instrument_kind_segment(asset_kind)
         if (
-            asset_kind_value != AssetKind.OPTIONS.value
-            and asset_kind_value != AssetKind.FUTURES.value
+            asset_kind_value != InstrumentKind.OPTION.value
+            and asset_kind_value != InstrumentKind.FUTURE.value
         ):
-            asset_kind_value = AssetKind.SPOT.value
+            asset_kind_value = InstrumentKind.SPOT.value
         return (
             f"{self.exchange_data_path}/{asset_code}/{asset_kind_value}/"
             f"{timeframe if isinstance(timeframe, str) else timeframe.value}"
         )
 
     def get_asset_history_years(
-        self, asset_code: str, asset_kind: AssetKind, timeframe: Timeframe
+        self, asset_code: str, asset_kind: InstrumentKind, timeframe: Timeframe
     ) -> list[int]:
         """Get years of history data for symbol"""
         fn_pattern = re.compile(r"\d{4}.parquet")
@@ -76,7 +92,7 @@ class AbstractFileProvider(AbstractProvider, ABC):
     def fn_path_prepare(
         self,
         asset_code: str,
-        asset_kind: AssetKind | str,
+        asset_kind: InstrumentKind | str,
         timeframe: Timeframe | str,
         year: int,
     ) -> str:

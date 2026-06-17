@@ -5,7 +5,8 @@ import datetime
 import pytest
 import pandas as pd
 
-from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.provider import RequestParameters
 from alphavar.provider._file_provider import AbstractFileProvider
 
@@ -65,7 +66,7 @@ def test_file_provider_instance(exchange_code, data_path):
 
 
 def test_get_symbols_list_for_options(file_provider):
-    symbols = file_provider.get_assets_list(AssetKind.OPTIONS)
+    symbols = file_provider.get_assets_list(InstrumentKind.OPTION)
     assert isinstance(symbols, list)
     assert len(symbols) > 0
     assert isinstance(symbols[0], str) > 0
@@ -73,28 +74,29 @@ def test_get_symbols_list_for_options(file_provider):
 
 def test_fn_path_prepare(file_provider, option_symbol):
     fn_path = file_provider.fn_path_prepare(
-        option_symbol, AssetKind.OPTIONS, Timeframe.EOD, 2024
+        option_symbol, InstrumentKind.OPTION, Timeframe.EOD, 2024
     )
     assert isinstance(fn_path, str)
     assert len(fn_path) > 0
-    assert AssetKind.OPTIONS.value in fn_path
+    # Path uses the singular instrument-kind canon (ADR 0001).
+    assert InstrumentKind.OPTION.value in fn_path
     assert option_symbol in fn_path
 
 
 def test_get_history_folder(file_provider, option_symbol):
     hist_dir = file_provider._get_history_folder(
-        option_symbol, AssetKind.OPTIONS, Timeframe.EOD
+        option_symbol, InstrumentKind.OPTION, Timeframe.EOD
     )
     assert isinstance(hist_dir, str)
     assert len(hist_dir) > 0
-    assert AssetKind.OPTIONS.value in hist_dir
+    assert InstrumentKind.OPTION.value in hist_dir
     assert Timeframe.EOD.value in hist_dir
     assert option_symbol in hist_dir
 
 
 def test_get_symbol_history_years(file_provider, option_symbol):
     hist_years = file_provider.get_asset_history_years(
-        option_symbol, AssetKind.OPTIONS, Timeframe.EOD
+        option_symbol, InstrumentKind.OPTION, Timeframe.EOD
     )
     assert isinstance(hist_years, list)
     assert len(hist_years) > 0

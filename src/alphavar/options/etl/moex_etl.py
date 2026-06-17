@@ -3,13 +3,14 @@ import datetime
 import pandas as pd
 from alphavar.options.etl.etl_class import EtlOptions, AssetBookData, SaveTask
 from alphavar.options_lib.dictionary import (
-    AssetKind,
     Timeframe,
     OptionsColumns as OCl,
     FuturesColumns as FCl,
     SpotColumns as SCl,
 )
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.exchange import MoexExchange
+from alphavar.exchange.moex import MoexAssetType
 from alphavar.messanger import AbstractMessanger
 
 
@@ -46,11 +47,11 @@ class EtlMoex(EtlOptions):
             return AssetBookData(asset_name=asset_name, request_timestamp=request_timestamp, option=None,
                                  future=None, spot=None, )
         book_summary_df[OCl.REQUEST_TIMESTAMP.nm] = request_timestamp
-        options_df = book_summary_df[book_summary_df[OCl.ASSET_TYPE.nm] == AssetKind.OPTIONS.code].reset_index(
+        options_df = book_summary_df[book_summary_df[OCl.ASSET_TYPE.nm] == InstrumentKind.OPTION.value].reset_index(
             drop=True)
         future_columns = [OCl.TIMESTAMP.nm, OCl.BASE_CODE.nm, OCl.UNDERLYING_CODE.nm, OCl.UNDERLYING_TYPE.nm,
                           OCl.UNDERLYING_EXPIRATION_DATE.nm, OCl.UNDERLYING_PRICE.nm]
-        futures_mask = book_summary_df[OCl.UNDERLYING_TYPE.nm] == AssetKind.FUTURES.code
+        futures_mask = book_summary_df[OCl.UNDERLYING_TYPE.nm] == MoexAssetType.FUTURES.code
         future_df = book_summary_df[futures_mask][future_columns] \
             .drop_duplicates(subset=[OCl.UNDERLYING_CODE.nm]) \
             .rename(columns={OCl.UNDERLYING_CODE.nm: FCl.ASSET_CODE.nm, OCl.UNDERLYING_TYPE.nm: FCl.ASSET_TYPE.nm,
@@ -70,24 +71,26 @@ class EtlMoex(EtlOptions):
                              spot=spot_df if not spot_df.empty else None,
                              )
 
-    def _add_save_task_to_background_to_asset_name(self, df: pd.DataFrame, asset_kind: AssetKind,
+    def _add_save_task_to_background_to_asset_name(self, df: pd.DataFrame, asset_kind: InstrumentKind,
                                                    request_datetime: pd.Timestamp):
-        asset_name = df.iloc[0][(OCl.BASE_CODE.nm if asset_kind != AssetKind.SPOT else OCl.ASSET_CODE.nm)]
+        asset_name = df.iloc[0][(OCl.BASE_CODE.nm if asset_kind != InstrumentKind.SPOT else OCl.ASSET_CODE.nm)]
         save_path = self.get_timeframe_update_path(asset_name, asset_kind, request_datetime)
         self.add_save_task_to_background(SaveTask(save_path, df.copy()))
 
     def _save_timeframe_book_update(self, book_data: AssetBookData):
         """ Save book data"""
 
-        fabric = {'option': AssetKind.OPTIONS,
-                  'future': AssetKind.FUTURES,
-                  'spot': AssetKind.SPOT,
+        # Save updates under the canonical singular kind token (ADR 0001). MOEX has no
+        # venue-specific spelling, so the venue-native token is the canon itself.
+        fabric = {'option': InstrumentKind.OPTION,
+                  'future': InstrumentKind.FUTURE,
+                  'spot': InstrumentKind.SPOT,
                   }
         request_datetime = book_data.request_timestamp
         for asset_kind_attr in fabric:
             df = getattr(book_data, asset_kind_attr)
             if df is not None:
-                df.groupby(OCl.BASE_CODE.nm if fabric[asset_kind_attr] != AssetKind.SPOT else OCl.ASSET_CODE.nm,
+                df.groupby(OCl.BASE_CODE.nm if fabric[asset_kind_attr] != InstrumentKind.SPOT else OCl.ASSET_CODE.nm,
                            group_keys=False) \
                     .apply(self._add_save_task_to_background_to_asset_name, asset_kind=fabric[asset_kind_attr],
                            request_datetime=request_datetime, include_groups=True)

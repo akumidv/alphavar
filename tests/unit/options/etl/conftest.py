@@ -6,7 +6,8 @@ import pytest
 from cachetools import TTLCache, cached
 
 from alphavar.exchange import DeribitExchange
-from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.options.etl.etl_class import AssetBookData, EtlOptions
 
 
@@ -38,4 +39,4 @@ def year_symbols_fixture(etl_history):
     Fixture for getting years from asset history.
     """
 
-    return etl_history._get_asset_history_years(AssetKind.FUTURES)
+    return etl_history._get_asset_history_years(InstrumentKind.FUTURE)

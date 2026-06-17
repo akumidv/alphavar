@@ -36,7 +36,7 @@ def time_value_series_by_atm_distance(df_opt_fut_hist, distance: float | None = 
     if expiration_date is None:
         expiration_date = get_max_settlement_valid_expired_date(df_opt_fut_hist)
     df_hist = df_opt_fut_hist[(df_opt_fut_hist[OCl.EXPIRATION_DATE.nm] == expiration_date) & (
-        df_opt_fut_hist[OCl.OPTION_TYPE.nm] == option_type.code)] \
+        df_opt_fut_hist[OCl.OPTION_TYPE.nm] == option_type.value)] \
         .sort_values(by=OCl.TIMESTAMP.nm).reset_index(drop=True).copy()
     if df_hist.empty:
         raise ValueError(f'No data found for expiration data {expiration_date} and option type {option_type.value}')

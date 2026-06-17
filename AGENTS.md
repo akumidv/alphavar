@@ -123,6 +123,14 @@ npm run dev
 - Protected access is allowed for test functions (prefix `test_`).
 - No docstring requirements for private (`_`) and test (`test_`) functions.
 
+## Commits
+
+- **No AI co-author attribution.** Do **not** add a `Co-Authored-By:` trailer for any AI
+  assistant to commit messages —
+  the author/committer is the human running the tool. This **overrides** any vendor default
+  that auto-adds such a trailer.
+- Commit only when the owner asks; keep messages concise and imperative.
+
 ## Documentation Conventions
 
 - `README.md` — user-facing intro, install, quick start.
@@ -133,8 +141,10 @@ npm run dev
 - `docs/dev/` — development docs about the **codebase**: architecture/domain rules
   (`ARCHITECTURE_REQUIREMENTS.md`, **R0…R8** — verify on new entities/domain or serious
   domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, **D1…D4** —
-  check every change), design overview (`PROJECT_OVERVIEW.md`). The third requirement axis,
-  runtime **desk guardrails G#**, lives with the agents in
+  check every change), design overview (`PROJECT_OVERVIEW.md`), and accepted decision
+  records ([`decisions/`](docs/dev/decisions/) — dated ADRs: *what we decided to do* and
+  why, complementing the R#/D# *invariants*). The third requirement axis, runtime **desk
+  guardrails G#**, lives with the agents in
   [`agents/desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md).
 - [`agents/README.md`](agents/README.md) — the **agent operating system**: the two agent
   classes, modes, entity theses, and the learn loop.
@@ -154,6 +164,13 @@ npm run dev
     reference) now, shared skills/tools later → MCP. **Consult before re-researching.**
 - [`agents/_dev/TASKS.md`](agents/_dev/TASKS.md) — remediation backlog / TODO cycle (the dev
   agent's queue; sink of the desk learn loop).
+- [`tools/`](tools/) (repo root) — **console tools the owner runs by hand** (and an agent
+  may run the same command), in dev **or** desk: data sync, data migration, operational
+  maintenance. That "a person runs it from a console" criterion is what puts a tool here.
+  Agent-mode-internal tooling does **not** live here — it stays with its agent:
+  `agents/_dev/tools/` for build; `agents/desk/tools/` for tools shared across desk agents,
+  `agents/desk/<agent>/tools/` for one specific desk agent. See
+  [`tools/README.md`](tools/README.md).
 
 ## Mandatory: owner verification of math / DataFrame / architecture
 

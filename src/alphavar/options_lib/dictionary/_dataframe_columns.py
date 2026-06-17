@@ -20,7 +20,7 @@ class OptionsColumns(EnumDataFrameColumn):
     TIMESTAMP = "timestamp", pd.Timestamp, "last"
     STRIKE = "strike", float, "last"
     EXPIRATION_DATE = "expiration_date", pd.Timestamp, "last"
-    OPTION_TYPE = "option_type", str, "last"  # OptionType
+    OPTION_TYPE = "option_right", str, "last"  # OptionType
     PRICE = "price", float, "last"
 
     ASK = "ask", float, "last"
@@ -32,9 +32,9 @@ class OptionsColumns(EnumDataFrameColumn):
     UNDERLYING_EXPIRATION_DATE = "underlying_expiration_date", pd.Timestamp, "last"
 
     # Exchange estimate
-    EXCHANGE_MARK_PRICE = "exhchange_mark_price", float, "last"  # Estimated by exchange fair or theoretical price
+    EXCHANGE_MARK_PRICE = "exch_mark_price", float, "last"  # Estimated by exchange fair or theoretical price
     EXCHANGE_MARK_IV = (  # IV cacluleted by exchange based on exchange mark price
-        "exchange_mark_iv",
+        "exch_mark_iv",
         float,
         "last",
     )  # IV caclculated by exchange based on exchange_price
@@ -47,7 +47,7 @@ class OptionsColumns(EnumDataFrameColumn):
 
     # ETL
     REQUEST_TIMESTAMP = "request_timestamp", pd.Timestamp, "last"
-    ORIGINAL_TIMESTAMP = "original_timestamp", pd.Timestamp, "last"
+    ORIGINAL_TIMESTAMP = "exch_timestamp", pd.Timestamp, "last"
     LAST = "last", float, "last"
     LOW_24 = "low_24", float, None
     HIGH_24 = "high_24", float, None
@@ -87,14 +87,15 @@ class OptionsColumns(EnumDataFrameColumn):
         "asset_code",
         str,
         "last",
-    )  # prev 'exchange_symbol'  # Equal to BASE_CODE for spot
-    ASSET_TYPE = "asset_type", str, "last"  # AssetKind TODO prev 'kind'
+    )  # underlying short code (BTC); Equal to BASE_CODE for spot
+    EXCH_SYMBOL = "exch_symbol", str, "last"  # venue contract ticker, unique per contract
+    ASSET_TYPE = "instrument_kind", str, "last"  # InstrumentKind
     UNDERLYING_CODE = (
         "underlying_asset_code",
         str,
         "last",
     )  # prev 'exchange_underlying_symbol' # None for spot
-    UNDERLYING_TYPE = "underlying_asset_type", str, "last"  # AssetType
+    UNDERLYING_TYPE = "underlying_asset_class", str, "last"  # AssetClass
     BASE_CODE = "base_asset_code", str, "last"  # prev 'symbol'
     TITLE = "title", str, "last"
     OPTION_STYLE = "option_style", str, "last"  # OptionStyle

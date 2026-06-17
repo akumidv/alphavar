@@ -10,7 +10,7 @@ from pydantic import validate_call
 from concurrent.futures import ThreadPoolExecutor
 from alphavar.options_lib.dictionary.enum_code import EnumCode
 from alphavar.options_lib.dictionary import (
-    Timeframe, AssetKind, OptionsType, AssetType, OptionsStyle,
+    Timeframe, OptionsType, AssetType, OptionsStyle,
     OptionsColumns as OCl,
     FuturesColumns as FCl,
     SpotColumns as SCl,
@@ -23,6 +23,7 @@ from alphavar.provider import DataEngine, RequestParameters
 from alphavar.exchange.cache import Cache
 from alphavar.exchange.exchange_entities import ExchangeCode
 from alphavar.exchange._abstract_exchange import AbstractExchange, RequestClass, APIException
+from alphavar.core.dictionary import InstrumentKind, ContractKind
 
 
 ttl_cache = Cache(128, is_new_day_ttl_reset=True)
@@ -36,7 +37,7 @@ class MoexAssetType(EnumCode):
     SHARE = AssetType.SHARE.value, AssetType.SHARE.code
     COMMODITY = AssetType.COMMODITY.value, AssetType.COMMODITY.code
     INDEX = AssetType.INDEX.value, AssetType.INDEX.code
-    FUTURES = 'futures', AssetKind.FUTURES.code
+    FUTURES = 'futures', 'f'
     # OPTION = AssetType.OPTION.value, AssetType.OPTION.code
 
 
@@ -71,7 +72,7 @@ class MoexOptions:
         response = self.client.request_api('/assets', params=params)
         # TODO replace asset type and asset_subtype to AssetType code
         symbols_df = pd.DataFrame(response) \
-            .rename(columns={'asset_subtype': OCl.UNDERLYING_TYPE.nm}) \
+            .rename(columns={'asset_type': OCl.ASSET_TYPE.nm, 'asset_subtype': OCl.UNDERLYING_TYPE.nm}) \
             .replace({OCl.ASSET_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                       OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType}})
         return symbols_df
@@ -101,7 +102,8 @@ underlying_type               c
         response = self.client.request_api(f'/assets/{asset_code}', params=params)
         data = {}
         for key, value in response.items():
-            if key == OCl.ASSET_TYPE.nm:
+            if key == 'asset_type':
+                key = OCl.ASSET_TYPE.nm
                 value = MoexAssetType(value).code
             elif key == 'asset_subtype':
                 key = OCl.UNDERLYING_TYPE.nm
@@ -123,7 +125,8 @@ underlying_type               c
         """
         response = self.client.request_api(f'/assets/{asset_code}/futures')
         fut_df = pd.DataFrame(response) \
-            .rename(columns={'asset_code': FCl.BASE_CODE.nm, 'futures_code': FCl.ASSET_CODE.nm}) \
+            .rename(columns={'asset_code': FCl.BASE_CODE.nm, 'futures_code': FCl.ASSET_CODE.nm,
+                             'asset_type': FCl.ASSET_TYPE.nm}) \
             .replace({FCl.ASSET_TYPE.nm: {at.value: at.code for at in MoexAssetType}})
         fut_df = df_columns_to_timestamp(fut_df, columns=[FCl.EXPIRATION_DATE.nm])
         return fut_df
@@ -149,7 +152,7 @@ underlying_type               c
                                  'asset_type': OCl.UNDERLYING_TYPE.nm, 'secid': OCl.ASSET_CODE.nm}) \
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                           OCl.OPTION_TYPE.nm: {at.value: at.code for at in OptionsType}})
-            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = InstrumentKind.OPTION.value
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
             return opt_df
         except APIException as err:
@@ -209,7 +212,7 @@ underlying_type               c
                                  'volume_contracts': OCl.VOLUME.nm, 'openposition': OCl.OPEN_INTEREST.nm}) \
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType}})
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm, OCl.ORIGINAL_TIMESTAMP.nm])
-            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = InstrumentKind.OPTION.value
             return opt_df
         except APIException as err:
             if err.status_code == 422:
@@ -253,7 +256,7 @@ underlying_type               c
                 .replace({OCl.UNDERLYING_TYPE.nm: {at.value: at.code for at in MoexAssetType},
                           OCl.OPTION_TYPE.nm: {at.value: at.code for at in OptionsType}})
             opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
-            opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
+            opt_df[OCl.ASSET_TYPE.nm] = InstrumentKind.OPTION.value
             opt_df[OCl.SERIES_CODE.nm] = series_code
             return opt_df
 
@@ -321,7 +324,7 @@ underlying_type               c
                 asset_type).code
         opt_df = df_columns_to_timestamp(opt_df, columns=[OCl.EXPIRATION_DATE.nm])
         opt_df[OCl.BASE_CODE.nm] = asset_code
-        opt_df[OCl.ASSET_TYPE.nm] = AssetKind.OPTIONS.code
+        opt_df[OCl.ASSET_TYPE.nm] = InstrumentKind.OPTION.value
         opt_df[OCl.SERIES_CODE.nm] = series_code
         opt_df[OCl.OPTION_STYLE.nm] = OptionsStyle.AMERICAN.code if series_code.lower().endswith(
             'a') else OptionsStyle.EUROPEAN.code
@@ -348,6 +351,14 @@ class MoexExchange(AbstractExchange):
     CURRENCIES = [Currency.RUB.value]
     TASKS_LIMIT: int = 2
 
+    # MOEX stores update snapshots under the canonical singular kind token already (no
+    # venue-specific spelling, no combos) — so the mapping is the identity (ADR 0001).
+    INSTRUMENT_KIND_MAP: dict[str, tuple[InstrumentKind, ContractKind]] = {
+        InstrumentKind.OPTION.value: (InstrumentKind.OPTION, ContractKind.VANILLA),
+        InstrumentKind.FUTURE.value: (InstrumentKind.FUTURE, ContractKind.VANILLA),
+        InstrumentKind.SPOT.value: (InstrumentKind.SPOT, ContractKind.VANILLA),
+    }
+
     def __init__(self, engine: DataEngine = DataEngine.PANDAS, api_url: str | None = None):
         """Init"""
         api_url = api_url if api_url else self.PRODUCT_API_URL
@@ -362,15 +373,15 @@ class MoexExchange(AbstractExchange):
             print(f'[ERROR] asset options request for {asset_code}: {err}')
             return None
 
-    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+    def get_asset_history_years(self, asset_code: str, asset_kind: InstrumentKind,
                                 timeframe: Timeframe) -> list[int]:
         """Exchange API does not provide per-year history."""
         raise NotImplementedError
 
-    def get_assets_list(self, asset_kind: AssetKind | str | None = None) -> list[str]:
+    def get_assets_list(self, asset_kind: InstrumentKind | str | None = None) -> list[str]:
         """       """
         asset_codes = self._get_asset_list_wo_options(asset_kind)
-        if asset_kind not in [AssetKind.OPTIONS, AssetKind.OPTIONS.value]:
+        if asset_kind not in [InstrumentKind.OPTION, InstrumentKind.OPTION.value]:
             return asset_codes
         options_asset_codes = []
         with ThreadPoolExecutor(max_workers=self.TASKS_LIMIT) as executor:
@@ -384,10 +395,10 @@ class MoexExchange(AbstractExchange):
         return options_asset_codes
 
     @ttl_cache.it
-    def _get_asset_list_wo_options(self, asset_kind: AssetKind | str | None = None):
-        if asset_kind in [AssetKind.OPTIONS, AssetKind.OPTIONS.value]:
+    def _get_asset_list_wo_options(self, asset_kind: InstrumentKind | str | None = None):
+        if asset_kind in [InstrumentKind.OPTION, InstrumentKind.OPTION.value]:
             asset_kind = None
-        elif asset_kind in [AssetKind.FUTURES, AssetKind.FUTURES.value, MoexAssetType.FUTURES.value]:
+        elif asset_kind in [InstrumentKind.FUTURE, InstrumentKind.FUTURE.value, MoexAssetType.FUTURES.value]:
             asset_kind = MoexAssetType.FUTURES
         elif isinstance(asset_kind, AssetType):
             asset_kind = MoexAssetType(asset_kind.value)  # TODO REFACTOR THIS, due changes in asset type to assend kind
@@ -454,13 +465,13 @@ class MoexExchange(AbstractExchange):
         # print('\n[WARNING] for get_options_assets_books_snapshot used STATIC FILE')
         # return pd.read_parquet('./book_summary_df.parquet')
         if asset_codes is None:
-            asset_codes = self._get_asset_list_wo_options(AssetKind.OPTIONS)
+            asset_codes = self._get_asset_list_wo_options(InstrumentKind.OPTION)
         elif isinstance(asset_codes, str):
             asset_codes = [asset_codes]
         asset_series_df = self._get_options_series(asset_codes)[[OCl.SERIES_CODE.nm, OCl.BASE_CODE.nm,
                                                                  OCl.UNDERLYING_CODE.nm, OCl.UNDERLYING_TYPE.nm,
                                                                  OCl.ORIGINAL_TIMESTAMP.nm]]
-        futures_asset_codes = list(asset_series_df[asset_series_df[OCl.UNDERLYING_TYPE.nm] == AssetKind.FUTURES.code][
+        futures_asset_codes = list(asset_series_df[asset_series_df[OCl.UNDERLYING_TYPE.nm] == MoexAssetType.FUTURES.code][
                                        OCl.BASE_CODE.nm].unique())
         futures_asset_underlying_df = self._get_underlyings(futures_asset_codes)[
             [FCl.ASSET_CODE.nm, FCl.ASSET_TYPE.nm, FCl.EXPIRATION_DATE.nm]] \

@@ -2,7 +2,6 @@
 import enum
 from alphavar.options_lib.dictionary.enum_code import EnumCode
 
-from alphavar.options_lib.dictionary._asset_types import AssetKind
 from alphavar.options_lib.dictionary._options_types import OptionsType
 
 
@@ -13,4 +12,4 @@ class LegType(EnumCode):
     """
     OPTIONS_CALL = OptionsType.CALL.value, OptionsType.CALL.code
     OPTIONS_PUT = OptionsType.PUT.value, OptionsType.PUT.code
-    FUTURES = AssetKind.FUTURES.value, AssetKind.FUTURES.code
+    FUTURES = 'futures', 'f'

@@ -5,7 +5,8 @@ import pytest
 import pandas as pd
 from functools import lru_cache
 
-from alphavar.options_lib.dictionary import LegType, AssetKind, Timeframe, OptionsColumns as OCl
+from alphavar.options_lib.dictionary import LegType, Timeframe, OptionsColumns as OCl
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.options_lib.entities import OptionsLeg
 from alphavar.options_lib.enrichment import join_option_with_future
 from alphavar.options_lib.chain.chain_selector import select_chain, get_max_settlement_valid_expired_date
@@ -84,7 +85,7 @@ def fixture_option_data(exchange_provider, option_symbol, provider_params):
     return opt_data
 
 
-def _get_update_file_list(base_path: str, asset_kind: AssetKind):
+def _get_update_file_list(base_path: str, asset_kind: InstrumentKind):
     asset_kind_path = os.path.abspath(
         os.path.normpath(os.path.join(base_path, asset_kind.value)))
     max_depth = 3
@@ -109,22 +110,24 @@ def _get_update_file_list(base_path: str, asset_kind: AssetKind):
 @lru_cache
 def option_update_files_fixture(update_path, exchange_code, option_symbol):
     if _CACHE.get('_update_files') is None:
+        # Update store uses venue-native singular kind tokens (ADR 0001); for Deribit these
+        # equal the canonical InstrumentKind value.
         _CACHE['_update_files'] = _get_update_file_list(os.path.join(update_path, exchange_code, option_symbol),
-                                                        AssetKind.OPTIONS)
+                                                        InstrumentKind.OPTION)
     return _CACHE['_update_files']
 
 
 @pytest.fixture(name='future_update_files')
 @lru_cache
 def future_update_files_fixture(update_path, exchange_code, option_symbol):
-    updates_files = _get_update_file_list(os.path.join(update_path, exchange_code, option_symbol), AssetKind.FUTURES)
+    updates_files = _get_update_file_list(os.path.join(update_path, exchange_code, option_symbol), InstrumentKind.FUTURE)
     return updates_files
 
 
 @pytest.fixture(name='provider_params')
 def fixture_provider_params(exchange_provider, option_symbol):
     cur_dt = datetime.date.today()
-    fn_path = exchange_provider._fn_path_prepare(option_symbol, AssetKind.OPTIONS, Timeframe.EOD, cur_dt.year)
+    fn_path = exchange_provider._fn_path_prepare(option_symbol, InstrumentKind.OPTION, Timeframe.EOD, cur_dt.year)
     if not os.path.exists(fn_path):
         list_of_files = sorted(os.listdir(os.path.dirname(fn_path)))
         if len(list_of_files) == 0:

@@ -41,7 +41,7 @@ class OptionsCol(Col):
     """ATM/ITM/OTM (OptionsPriceStatus code) — produced by ``get_price_status``."""
 
 
-# Dependency graph for enrichment: column -> columns it requires (R4 / dictionary v2).
+# Dependency graph for enrichment: column -> columns it requires (R4 dictionary).
 OPTION_COLUMN_DEPENDENCIES: dict[str, list[str]] = {
     OptionsCol.INTRINSIC_VALUE: [OptionsCol.UNDERLYING_PRICE],
     OptionsCol.TIMED_VALUE: [OptionsCol.INTRINSIC_VALUE],

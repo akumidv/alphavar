@@ -9,6 +9,7 @@ import pandas as pd
 from alphavar.provider import DataEngine
 from alphavar.provider import AbstractProvider
 from alphavar.exchange.exchange_exception import APIException, RequestException
+from alphavar.core.dictionary import InstrumentKind, ContractKind
 
 
 class BookData(NamedTuple):
@@ -102,6 +103,19 @@ class RequestClass:
 class AbstractExchange(AbstractProvider, ABC):
     """Abstract exchange class"""
     SOURCE_PREFIX = 'source'
+
+    # Venue-native asset-kind token (as stored in the raw update layout and the venue API,
+    # e.g. Deribit 'option'/'future_combo') -> canonical (InstrumentKind, ContractKind).
+    # The canon is a project enum, kept separate from the venue wire format (R2.2); the
+    # raw update store stays venue-native and is normalized here at the migration boundary
+    # (ADR 0001 / R4.5). Subclasses override this map; empty by default.
+    INSTRUMENT_KIND_MAP: dict[str, tuple[InstrumentKind, ContractKind]] = {}
+
+    @classmethod
+    def resolve_instrument_kind(cls, native_kind: str) -> tuple[InstrumentKind, ContractKind] | None:
+        """Resolve a venue-native kind token to the canonical (InstrumentKind, ContractKind),
+        or None if the venue token is unknown to this exchange."""
+        return cls.INSTRUMENT_KIND_MAP.get(native_kind)
 
     @abstractmethod
     def __init__(self, engine: DataEngine, exchange_code: str, api_url: str, http_params: dict | None = None, **kwargs):

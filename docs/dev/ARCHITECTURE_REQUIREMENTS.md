@@ -338,7 +338,9 @@ Rules:
   `OptionsColumns`), but a value in a per-row column names *one* instrument, so singular.
   **Migration:** today `AssetKind` stores plural (`"options"`/`"futures"`) in parquet and
   in the dir layout (`DERIBIT/BTC/options/…`); moving to singular requires a parquet +
-  path migration (backlog T23.6 / data migration).
+  path migration (backlog T23.6 / data migration). The full adoption — canon everywhere,
+  retiring `AssetKind`, phased rollout, and tooling — is decided in
+  [`decisions/0001-instrument-kind-canon.md`](decisions/0001-instrument-kind-canon.md).
 - **Columns are singular** (one row = one instrument's attribute): `option_right`,
   `instrument_kind`, `option_style`. **Enums are singular** too (`OptionRight` — one
   value out of a set, like `enum Color`), an intentional exception to R4.1's "plural for

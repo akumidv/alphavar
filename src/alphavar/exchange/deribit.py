@@ -9,7 +9,7 @@ import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from alphavar.options_lib.dictionary.enum_code import EnumCode
 from alphavar.options_lib.dictionary import (
-    Timeframe, AssetKind, OptionsType,
+    Timeframe, OptionsType,
     OptionsColumns as OCl,
     FuturesColumns as FCl,
     SpotColumns as SCl,
@@ -19,30 +19,22 @@ from alphavar.options_lib.normalization import parse_expiration_date, normalize_
 from alphavar.exchange.exchange_entities import ExchangeCode
 from alphavar.exchange._abstract_exchange import AbstractExchange, RequestClass
 from alphavar.provider import DataEngine, RequestParameters
+from alphavar.core.dictionary import InstrumentKind, ContractKind
 
 
 class DeribitAssetKind(EnumCode):
-    """Deribit instrument kinds"""
-    FUTURE = 'future', AssetKind.FUTURES.code
-    OPTION = AssetKind.OPTIONS.value, AssetKind.OPTIONS.code
-    SPOT = AssetKind.SPOT.value, AssetKind.SPOT.code  # TODO Crytpo !
+    """Deribit venue-native instrument kinds.
+
+    The enum `value` IS the Deribit wire token (`kind=` query param) and the token under
+    which raw update snapshots are stored — singular, venue-spelled (ADR 0001 / R2.2). It
+    is *not* the project's canonical kind: map to that via
+    ``DeribitExchange.resolve_instrument_kind`` (-> ``InstrumentKind`` + ``ContractKind``).
+    """
+    FUTURE = 'future', 'f'
+    OPTION = 'option', 'o'
+    SPOT = 'spot', 's'  # TODO Crytpo !
     FUTURE_COMBO = 'future_combo', 'fc'
     OPTION_COMBO = 'option_combo', 'oc'
-
-
-# К ПРОВЕРКЕ / TO VERIFY (owner): split project enum from the exchange API parameter.
-# The enum `value` is the project-internal name (e.g. OPTION -> 'options', from
-# AssetKind.OPTIONS.value); the Deribit `kind=` query param uses the SINGULAR venue
-# spelling. Sending `kind.value` ('options') returns HTTP 400 — Deribit wants 'option',
-# so Deribit option book snapshots silently failed. This explicit mapping keeps the
-# project enum independent of the API wire format (see backlog: project-enum vs API-enum).
-_DERIBIT_API_KIND: dict[DeribitAssetKind, str] = {
-    DeribitAssetKind.FUTURE: 'future',
-    DeribitAssetKind.OPTION: 'option',
-    DeribitAssetKind.SPOT: 'spot',
-    DeribitAssetKind.FUTURE_COMBO: 'future_combo',
-    DeribitAssetKind.OPTION_COMBO: 'option_combo',
-}
 
 
 DOT_STRIKE_REGEXP = re.compile(r'(\d)d(\d)', flags=re.IGNORECASE)
@@ -178,9 +170,8 @@ class DeribitMarket:
         """
         params = {'currency': currency}
         if kind is not None:
-            # К ПРОВЕРКЕ / TO VERIFY (owner): was `params['kind'] = kind.value` — sent the
-            # project-internal name ('options') which Deribit rejects (wants 'option').
-            params['kind'] = _DERIBIT_API_KIND[kind]
+            # DeribitAssetKind.value is the venue wire token ('option'/'future'/…) — R2.2.
+            params['kind'] = kind.value
         request_timestamp = pd.Timestamp.now(tz=datetime.UTC)
         response = self.client.request_api('/public/get_book_summary_by_currency', params=params)
         book_summary_df = pd.DataFrame(response['result'])
@@ -300,13 +291,23 @@ class DeribitExchange(AbstractExchange):
     CURRENCIES: list[str] = ['BTC', 'ETH', 'USDC', 'USDT', 'EURR']
     TASKS_LIMIT: int = 4
 
+    # Venue-native kind token -> canonical (InstrumentKind, ContractKind) (ADR 0001).
+    # Combos are not a kind: they carry a vanilla instrument kind + ContractKind.COMBO.
+    INSTRUMENT_KIND_MAP: dict[str, tuple[InstrumentKind, ContractKind]] = {
+        DeribitAssetKind.OPTION.value: (InstrumentKind.OPTION, ContractKind.VANILLA),
+        DeribitAssetKind.FUTURE.value: (InstrumentKind.FUTURE, ContractKind.VANILLA),
+        DeribitAssetKind.SPOT.value: (InstrumentKind.SPOT, ContractKind.VANILLA),
+        DeribitAssetKind.OPTION_COMBO.value: (InstrumentKind.OPTION, ContractKind.COMBO),
+        DeribitAssetKind.FUTURE_COMBO.value: (InstrumentKind.FUTURE, ContractKind.COMBO),
+    }
+
     def __init__(self, engine: DataEngine = DataEngine.PANDAS, api_url: str | None = None):
         """Init"""
         api_url = api_url if api_url else self.PRODUCT_API_URL
         super().__init__(engine, ExchangeCode.DERIBIT.name, api_url=api_url)
         self.market = DeribitMarket(self.client)
 
-    def get_assets_list(self, asset_kind: AssetKind) -> list[str]:
+    def get_assets_list(self, asset_kind: InstrumentKind) -> list[str]:
         """
         :param asset_kind:
         :return:
@@ -316,7 +317,7 @@ class DeribitExchange(AbstractExchange):
         symbols_df = self.market.get_instruments()
         return [symbol.upper() for symbol in symbols_df['price_index'].unique()]
 
-    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+    def get_asset_history_years(self, asset_code: str, asset_kind: InstrumentKind,
                                 timeframe: Timeframe) -> list[int]:
         """Exchange API does not provide per-year history."""
         raise NotImplementedError

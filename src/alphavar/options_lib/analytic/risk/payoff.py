@@ -11,11 +11,11 @@ def _get_premium(df_chain_type_opt: pd.DataFrame, strike: float, leg_type: LegTy
     if leg_type == LegType.FUTURES:
         raise ValueError('Future do not have premium')
     if leg_type is not None:
-        df_chain_type_opt = df_chain_type_opt[df_chain_type_opt[OCl.OPTION_TYPE.nm] == leg_type.code]
+        df_chain_type_opt = df_chain_type_opt[df_chain_type_opt[OCl.OPTION_TYPE.nm] == leg_type.value]
     premium_df = df_chain_type_opt[df_chain_type_opt[OCl.STRIKE.nm] == strike]
     if premium_df.empty:
         del premium_df
-        type_code = OptionsType.CALL.value if df_chain_type_opt.iloc[0][OCl.OPTION_TYPE.nm] == OptionsType.CALL.code else \
+        type_code = OptionsType.CALL.value if df_chain_type_opt.iloc[0][OCl.OPTION_TYPE.nm] == OptionsType.CALL.value else \
             OptionsType.PUT.value
         raise ValueError(f'Data for strike {strike} for and option type {type_code} absent')
     premium = premium_df.iloc[0][OCl.PRICE.nm]
@@ -120,7 +120,7 @@ def _calc_premium_profile(df_opt_type: pd.DataFrame, leg: OptionsLeg, premium: f
 
 def _chain_leg_expiration_risk_profile(df_chain: pd.DataFrame, leg: OptionsLeg) -> pd.DataFrame:
     """Calc PNL Risk profile for leg"""
-    type_code = OptionsType.PUT.code if leg.type == LegType.OPTIONS_PUT else OptionsType.CALL.code
+    type_code = OptionsType.PUT.value if leg.type == LegType.OPTIONS_PUT else OptionsType.CALL.value
     df = df_chain[df_chain[OCl.OPTION_TYPE.nm] == type_code].copy()
     if leg.type == LegType.FUTURES:
         df.loc[:, RCl.RISK_PNL.nm] = (df[OCl.STRIKE.nm] - df[OCl.UNDERLYING_PRICE.nm]) * leg.lots

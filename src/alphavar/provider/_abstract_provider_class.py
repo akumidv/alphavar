@@ -13,7 +13,8 @@ from abc import ABC, abstractmethod
 import datetime
 import pandas as pd
 
-from alphavar.options_lib.dictionary import OptionsColumns, FuturesColumns, Timeframe, AssetKind
+from alphavar.options_lib.dictionary import OptionsColumns, FuturesColumns, Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.provider._provider_entities import RequestParameters
 
 
@@ -41,12 +42,12 @@ class AbstractProvider(ABC):
         super().__init__(**kwargs)
 
     @abstractmethod
-    def get_assets_list(self, asset_kind: AssetKind) -> list[str]:
+    def get_assets_list(self, asset_kind: InstrumentKind) -> list[str]:
         """List of symbols"""
 
     @abstractmethod
     def get_asset_history_years(
-        self, asset_code: str, asset_kind: AssetKind, timeframe: Timeframe
+        self, asset_code: str, asset_kind: InstrumentKind, timeframe: Timeframe
     ) -> list[int]:
         """List of history years"""
 

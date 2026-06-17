@@ -18,6 +18,7 @@ def etl_moex_fixture(moex_exchange, data_path):
     return etl_moex
 
 
+@pytest.mark.integration  # fetches a live book snapshot from the MOEX API
 def test_moex_get_symbols_books_snapshot(etl_moex, moex_asset_code):
     request_timestamp = pd.Timestamp.now(tz=datetime.UTC)
     book_data = etl_moex.get_symbols_books_snapshot(moex_asset_code, request_timestamp)
@@ -31,11 +32,14 @@ def test__save_timeframe_book_update(etl_moex):
     options_df = pd.DataFrame(
         {f'{OCl.BASE_CODE.nm}': ['SI', 'SI', 'YDEX', 'YDEX'], f'{OCl.PRICE.nm}': [10, 10, 50, 50]})
     future_df = pd.DataFrame({f'{OCl.BASE_CODE.nm}': ['SI', 'SI'], f'{FCl.PRICE.nm}': [80, 80]})
-    spot_df = pd.DataFrame({f'{OCl.BASE_CODE.nm}': ['YDEX', 'YDEX'], f'{OCl.PRICE.nm}': [4000, 4000]})
+    # К ПРОВЕРКЕ / TO VERIFY (owner): a spot row is identified by asset_code (not base_code) —
+    # spot has no underlying; matches _save_timeframe_book_update's groupby (SPOT -> asset_code)
+    # and MOEX normalization (secid -> asset_code). Was base_code, which raised KeyError.
+    spot_df = pd.DataFrame({f'{OCl.ASSET_CODE.nm}': ['YDEX', 'YDEX'], f'{OCl.PRICE.nm}': [4000, 4000]})
     saved_tasks = len(etl_moex._save_tasks)
     book_data = AssetBookData(asset_name='BTC', request_timestamp=pd.Timestamp.now(tz=datetime.UTC),
                                      option=options_df, future=future_df, spot=spot_df)
     etl_moex._save_timeframe_book_update(book_data)  # pylint: disable=protected-access
     assert len(etl_moex._save_tasks) == saved_tasks + len(options_df[OCl.BASE_CODE.nm].unique()) + \
-        len(future_df[OCl.BASE_CODE.nm].unique()) + len(spot_df[OCl.BASE_CODE.nm].unique())
+        len(future_df[OCl.BASE_CODE.nm].unique()) + len(spot_df[OCl.ASSET_CODE.nm].unique())
     etl_moex._save_tasks = []

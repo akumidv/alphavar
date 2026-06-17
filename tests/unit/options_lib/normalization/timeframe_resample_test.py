@@ -37,7 +37,7 @@ def test__get_group_columns_by_type_future():
 
 def test__get_group_columns_by_type_option():
     opt_dict = {OCl.PRICE.nm: [123, 234], OCl.EXPIRATION_DATE.nm: [pd.Timestamp.now(), pd.Timestamp.now()],
-                OCl.OPTION_TYPE.nm: [OptionsType.CALL.code, OptionsType.PUT.code],
+                OCl.OPTION_TYPE.nm: [OptionsType.CALL.value, OptionsType.PUT.value],
                 OCl.STRIKE.nm: [1000, 1200]}
     df = pd.DataFrame(opt_dict)
     group_columns = _get_group_columns_by_type(df)
@@ -50,13 +50,13 @@ def test__get_group_columns_by_type_option():
 
 def test__get_group_columns_by_type_wrong_option():
     opt_dict = {OCl.PRICE.nm: [123, 234], OCl.EXPIRATION_DATE.nm: [pd.Timestamp.now(), pd.Timestamp.now()],
-                OCl.OPTION_TYPE.nm: [OptionsType.CALL.code, pd.NA],
+                OCl.OPTION_TYPE.nm: [OptionsType.CALL.value, pd.NA],
                 OCl.STRIKE.nm: [1000, 1200]}
     df = pd.DataFrame(opt_dict)
     with pytest.raises(ValueError):
         _ = _get_group_columns_by_type(df)
     opt_dict = {OCl.PRICE.nm: [123, 234], OCl.EXPIRATION_DATE.nm: [pd.Timestamp.now(), pd.Timestamp.now()],
-                OCl.OPTION_TYPE.nm: [OptionsType.CALL.code, OptionsType.PUT.code],
+                OCl.OPTION_TYPE.nm: [OptionsType.CALL.value, OptionsType.PUT.value],
                 OCl.STRIKE.nm: [1000, None]}
     df = pd.DataFrame(opt_dict)
     with pytest.raises(ValueError):

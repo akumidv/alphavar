@@ -4,7 +4,8 @@ Binance api provider
 import datetime
 import pandas as pd
 
-from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.provider import DataEngine, RequestParameters
 from alphavar.exchange.exchange_entities import ExchangeCode
 from alphavar.exchange._abstract_exchange import AbstractExchange, BookData
@@ -22,10 +23,10 @@ class BinanceExchange(AbstractExchange):
                          timeframe: Timeframe = Timeframe.EOD, columns: list | None = None) -> pd.DataFrame:
         raise NotImplementedError
 
-    def get_assets_list(self, asset_kind: AssetKind) -> list[str]:
+    def get_assets_list(self, asset_kind: InstrumentKind) -> list[str]:
         raise NotImplementedError
 
-    def get_asset_history_years(self, asset_code: str, asset_kind: AssetKind,
+    def get_asset_history_years(self, asset_code: str, asset_kind: InstrumentKind,
                                 timeframe: Timeframe) -> list[int]:
         """Exchange API does not provide per-year history."""
         raise NotImplementedError

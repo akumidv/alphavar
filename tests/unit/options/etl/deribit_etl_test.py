@@ -20,6 +20,7 @@ def etl_deribit_fixture(deribit_client, data_path):
     return etl_deribit
 
 
+@pytest.mark.integration  # fetches a live book snapshot from the Deribit API
 def test_get_symbols_books_snapshot(etl_deribit):
     currency_symbol = DeribitExchange.CURRENCIES[0]
     request_timestamp = pd.Timestamp.now(tz=datetime.UTC)

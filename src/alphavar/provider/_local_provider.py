@@ -13,7 +13,8 @@ import datetime
 import pandas as pd
 from pydantic import validate_call
 
-from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.options_lib.dictionary import Timeframe
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.provider._file_provider import AbstractFileProvider
 from alphavar.provider._provider_entities import RequestParameters
 
@@ -21,12 +22,12 @@ from alphavar.provider._provider_entities import RequestParameters
 class PandasLocalFileProvider(AbstractFileProvider):
     """Load data from files by Pandas"""
 
-    def _fn_path_prepare(self, asset_code: str, asset_kind: AssetKind, timeframe: Timeframe, year: int):
+    def _fn_path_prepare(self, asset_code: str, asset_kind: InstrumentKind, timeframe: Timeframe, year: int):
         return super().fn_path_prepare(asset_code, asset_kind, timeframe, year)
 
     def _load_data_for_period(
         self,
-        asset_kind: AssetKind,
+        asset_kind: InstrumentKind,
         asset_code: str,
         params: RequestParameters,
         columns: list,
@@ -82,7 +83,7 @@ class PandasLocalFileProvider(AbstractFileProvider):
         if columns is None:
             columns = self.options_columns
         df_hist = self._load_data_for_period(
-            asset_kind=AssetKind.OPTIONS,
+            asset_kind=InstrumentKind.OPTION,
             asset_code=asset_code,
             params=params,
             columns=columns,
@@ -112,7 +113,7 @@ class PandasLocalFileProvider(AbstractFileProvider):
         if columns is None:
             columns = self.futures_columns
         df_fut = self._load_data_for_period(
-            asset_kind=AssetKind.FUTURES,
+            asset_kind=InstrumentKind.FUTURE,
             asset_code=asset_code,
             params=params,
             columns=columns,

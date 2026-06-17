@@ -12,12 +12,13 @@ from collections import OrderedDict
 # import itertools
 # from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
-from alphavar.options_lib.dictionary import Timeframe, AssetKind, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
+from alphavar.options_lib.dictionary import Timeframe, OptionsColumns as OCl, FuturesColumns as FCl, SpotColumns as SCl
+from alphavar.core.dictionary import InstrumentKind, ContractKind
 from alphavar.options_lib.normalization.timeframe_resample import DEFAULT_RESAMPLE_MODEL, convert_to_timeframe
 from alphavar.options_lib.normalization import validate_path_segment
 from alphavar.provider import PandasLocalFileProvider, RequestParameters
 from alphavar.exchange.exchange_entities import ExchangeCode
-from alphavar.exchange import AbstractExchange
+from alphavar.exchange import AbstractExchange, get_exchange_class
 
 
 class EtlHistory:
@@ -35,17 +36,21 @@ class EtlHistory:
     update_fn_pattern: re.Pattern = re.compile(r'^(\d{4}|\d{2})-\d{2}-\d{2}((T\d{2}-\d{2})|(T\d{2}))?\.parquet$')
 
     def __init__(self, exchange_code: ExchangeCode | str, history_path: str, update_path: str, timeframe: Timeframe,
-                 symbols: list[str] | None = None, asset_kinds: list[AssetKind] | None = None,
+                 symbols: list[str] | None = None, asset_kinds: list[InstrumentKind] | None = None,
                  params: dict[str] | None = None):
         self._exchange_code: str = exchange_code if isinstance(exchange_code, str) else exchange_code.name
         validate_path_segment(self._exchange_code, field='exchange_code')
+        # Exchange class for venue-native -> canonical kind resolution (ADR 0001 / R2.2).
+        self._exchange_cls: type[AbstractExchange] = get_exchange_class(exchange_code)
         exchange_data_path = os.path.normpath(os.path.abspath(os.path.join(history_path, self._exchange_code)))
         os.makedirs(exchange_data_path, exist_ok=True)
         self.history_path: str = os.path.normpath(os.path.abspath(history_path))
         self.update_path: str = os.path.normpath(os.path.abspath(update_path))
         self._timeframe: Timeframe = timeframe
         self._symbols: list[str] | None = symbols
-        self._asset_kinds = asset_kinds if asset_kinds is not None else [AssetKind.SPOT, AssetKind.FUTURES, AssetKind.OPTIONS]
+        # Canonical instrument kinds to migrate (singular).
+        self._instrument_kinds: list[InstrumentKind] = asset_kinds if asset_kinds is not None else [
+            InstrumentKind.SPOT, InstrumentKind.FUTURE, InstrumentKind.OPTION]
         self._source_timeframes: list[Timeframe] = list(sorted([tm for tm in Timeframe
                                                                 if tm.mult <= self._timeframe.mult],
                                                                key=lambda tm: tm.mult))
@@ -97,7 +102,7 @@ class EtlHistory:
                     df[col] = df[OCl.PRICE.nm]
         return df
 
-    def _get_filepath(self, symbol: str, asset_kind: str | AssetKind, year: int) -> str:
+    def _get_filepath(self, symbol: str, asset_kind: str | InstrumentKind, year: int) -> str:
         return self.provider.fn_path_prepare(symbol, asset_kind, self._timeframe, year)
 
     def _convert_timeframe(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -107,7 +112,7 @@ class EtlHistory:
         return df
 
     def join_symbols_kind_diff_timeframes_update_files(self, timeframes_updates_files: dict[str, list],
-                                                       symbol: str, asset_kind: str | AssetKind):
+                                                       symbol: str, asset_kind: str | InstrumentKind):
         """Join different timeframes files and update history files"""
         max_period_records_num_for_optimize = 500_000  # 500_000 - ignore spot, futures anr 1h and more for options
         update_files_by_period = OrderedDict()
@@ -169,7 +174,7 @@ class EtlHistory:
         if self._full_history:
             return None
         asset_kinds_start_ts = []
-        for asset_kind in self._asset_kinds:
+        for asset_kind in self._instrument_kinds:
             year_symbols = self._get_asset_history_years(asset_kind)
             asset_start_ts = self._get_start_timestamp(year_symbols, asset_kind)
             if asset_start_ts is not None:
@@ -178,7 +183,8 @@ class EtlHistory:
             return None
         return min(asset_kinds_start_ts)
 
-    def _get_start_timestamp(self, years_symbol: dict[int: list[str]], asset_kind: AssetKind) -> pd.Timestamp | None:
+    def _get_start_timestamp(self, years_symbol: dict[int: list[str]],
+                             asset_kind: InstrumentKind) -> pd.Timestamp | None:
         """Search max timestamp in history files for sample of symbols"""
         max_symbols = 3  # Max symbols to search last date
         if years_symbol is None:
@@ -194,10 +200,10 @@ class EtlHistory:
         request_parma = RequestParameters(period_to=max_year, timeframe=self._timeframe)
         year_symbols = random.sample(year_symbols, max_symbols) if len(year_symbols) > max_symbols else year_symbols
         for symbol in year_symbols:
-            if asset_kind.value == AssetKind.FUTURES.value:  # Use value there because it can be DeribitAssetKind and they will be different but the equal values
+            if asset_kind == InstrumentKind.FUTURE:
                 df = self.provider.load_futures_history(symbol, request_parma, columns=[FCl.TIMESTAMP.nm])
                 start_ts_new = df[FCl.TIMESTAMP.nm].max()
-            elif asset_kind.value == AssetKind.OPTIONS.value:
+            elif asset_kind == InstrumentKind.OPTION:
                 df = self.provider.load_options_history(symbol, request_parma, columns=[OCl.TIMESTAMP.nm])
                 start_ts_new = df[OCl.TIMESTAMP.nm].max()
             else:
@@ -205,7 +211,7 @@ class EtlHistory:
             start_ts = start_ts_new if start_ts is None else max(start_ts, start_ts_new)
         return start_ts
 
-    def _get_asset_history_years(self, asset_kind: AssetKind) -> dict[int: list[str]]:
+    def _get_asset_history_years(self, asset_kind: InstrumentKind) -> dict[int: list[str]]:
         """Search for history data year files"""
         symbols = self.provider.get_assets_list(asset_kind)
         if self._symbols:
@@ -227,7 +233,6 @@ class EtlHistory:
         """Prepare list of underlying assets symbols"""
 
         max_depth = 3
-        asset_kind_names = [at.value for at in self._asset_kinds]
         source_timeframe_names = [tm.value for tm in self._source_timeframes]
         updates_files = {}
         exchange_path = os.path.join(self.update_path, self._exchange_code)
@@ -238,9 +243,16 @@ class EtlHistory:
             symbols_path = os.path.join(exchange_path, symbol)
             if os.path.isfile(symbols_path):
                 continue
+            # Update dirs are venue-native kind tokens (ADR 0001). Keep only those that map
+            # to a requested vanilla instrument kind; combos (contract_kind != vanilla) are
+            # not migrated into the kind-partitioned history.
             asset_kind_dirs = os.listdir(symbols_path)
             for asset_kind in asset_kind_dirs:
-                if asset_kind in asset_kind_names:
+                resolved = self._exchange_cls.resolve_instrument_kind(asset_kind)
+                if resolved is None:
+                    continue
+                instrument_kind, contract_kind = resolved
+                if contract_kind == ContractKind.VANILLA and instrument_kind in self._instrument_kinds:
                     asset_kind_path = os.path.join(symbols_path, asset_kind)
                     timeframes = os.listdir(asset_kind_path)
                     timeframes = filter(lambda x: x in source_timeframe_names, timeframes)

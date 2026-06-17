@@ -1,7 +1,8 @@
 """MOEX exchange provider"""
 import pandas as pd
 import pytest
-from alphavar.options_lib.dictionary import AssetKind, OptionsColumns as OCl
+from alphavar.options_lib.dictionary import OptionsColumns as OCl
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.provider import AbstractProvider
 from alphavar.exchange import AbstractExchange
 from alphavar.exchange.moex import MoexExchange
@@ -14,7 +15,7 @@ def test_moex_exchange_init():
 
 
 def test_get_assets_list_future(moex_exchange, moex_asset_code):
-    asset_kind = AssetKind.FUTURES
+    asset_kind = InstrumentKind.FUTURE
     assets = moex_exchange.get_assets_list(asset_kind)
     assert isinstance(assets, list)
     assert len(assets) > 0
@@ -23,7 +24,7 @@ def test_get_assets_list_future(moex_exchange, moex_asset_code):
 
 @pytest.mark.integration  # walks every asset's /options endpoint (live API)
 def test_get_assets_list_options(moex_exchange, moex_asset_code):
-    asset_kind = AssetKind.OPTIONS
+    asset_kind = InstrumentKind.OPTION
     assets = moex_exchange.get_assets_list(asset_kind)
     assert isinstance(assets, list)
     assert len(assets) > 0

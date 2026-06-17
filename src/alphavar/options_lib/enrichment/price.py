@@ -15,9 +15,9 @@ def add_intrinsic_and_time_value(df_hist):
     """
 
     df_hist.loc[:, OCl.INTRINSIC_VALUE.nm] = 0.
-    df_hist.loc[df_hist[OCl.OPTION_TYPE.nm] == OptionsType.CALL.code, OCl.INTRINSIC_VALUE.nm] = \
+    df_hist.loc[df_hist[OCl.OPTION_TYPE.nm] == OptionsType.CALL.value, OCl.INTRINSIC_VALUE.nm] = \
         df_hist[OCl.UNDERLYING_PRICE.nm] - df_hist[OCl.STRIKE.nm]
-    df_hist.loc[df_hist[OCl.OPTION_TYPE.nm] == OptionsType.PUT.code, OCl.INTRINSIC_VALUE.nm] = \
+    df_hist.loc[df_hist[OCl.OPTION_TYPE.nm] == OptionsType.PUT.value, OCl.INTRINSIC_VALUE.nm] = \
         df_hist[OCl.STRIKE.nm] - df_hist[OCl.UNDERLYING_PRICE.nm]
     df_hist.loc[df_hist[OCl.INTRINSIC_VALUE.nm] < 0, OCl.INTRINSIC_VALUE.nm] = 0
     df_hist.loc[:, OCl.TIMED_VALUE.nm] = df_hist[OCl.PRICE.nm] - df_hist[OCl.INTRINSIC_VALUE.nm]
@@ -53,7 +53,7 @@ def add_atm_itm_otm_exp(df_hist):
         atm_strikes = x[x['_diff_abs'] == x['_diff_abs'].min()]
         atm_strike_diff = atm_strikes.iloc[0]['_diff']
 
-        if x.iloc[0][OCl.OPTION_TYPE.nm] == OptionsType.CALL.code:
+        if x.iloc[0][OCl.OPTION_TYPE.nm] == OptionsType.CALL.value:
             itm = x[x['_diff'] > atm_strike_diff]
             otm = x[x['_diff'] < atm_strike_diff]
             return pd.Series([OptionsPriceStatus.ITM.code] * len(itm) + [OptionsPriceStatus.ATM.code] + \
