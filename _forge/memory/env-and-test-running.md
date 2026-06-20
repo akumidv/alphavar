@@ -15,6 +15,10 @@ Non-obvious operational facts:
   machine-local. Hermetic committed fixtures are still TODO (TASKS.md T11).
 - Test output artefacts (charts) go to project-root `.tmp/` (git-ignored) via the
   `tmp_output_dir` fixture / `ALPHAVAR_TMP_DIR` env var set in `tests/conftest.py`.
+- Pytest `pythonpath` includes `.` (repo root) and `src`, so the dev tools import as
+  `_forge.tools.*` (e.g. `python -m _forge.tools.data_migration`) and `tests.utils.*` as
+  packages. `_forge/` and `_forge/tools/` carry `__init__.py` for this. Test-only helpers
+  are NOT dev tools → they live in `tests/utils/`.
 
 Tasks live in the repo at `_forge/TASKS.md`; formal rules in
 `../../../docs/dev/ARCHITECTURE_REQUIREMENTS.md`. See

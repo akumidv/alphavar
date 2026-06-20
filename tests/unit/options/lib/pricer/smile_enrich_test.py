@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from alphavar.options.dictionary import OptionsTerm, OptionRight
+from alphavar.options.dictionary import OptionRight, OptionsTerm
 from alphavar.options.lib.pricer._smile_enrich import add_smile_iv, fit_smile_slices
 
 
@@ -71,16 +71,11 @@ def test_missing_market_iv_raises():
 
 
 def test_facade_fit_smile_writes_iv_and_price(option_data):
-    """End-to-end via the Option facade on real fixture data (if it carries options)."""
-    from alphavar.options.option_class import Option  # local import: facade
-
-    df = _slice_frame()
-    option_data.df_hist = df
-    opt = Option.__new__(Option)  # bypass provider init; exercise the pricer over injected data
+    """End-to-end through the OptionsPricer facade over injected slice data."""
     from alphavar.options.pricer_class import OptionsPricer
 
-    pricer = OptionsPricer(option_data)
-    pricer.fit_smile(model="svi")
+    option_data.df_hist = _slice_frame()
+    OptionsPricer(option_data).fit_smile(model="svi")
     assert OptionsTerm.IV in option_data.df_hist.columns
     assert OptionsTerm.PRICE in option_data.df_hist.columns
     assert option_data.df_hist[OptionsTerm.PRICE].notna().all()

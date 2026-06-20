@@ -343,8 +343,27 @@ ruff (`[tool.ruff]`, line length 120; F/E/W/I/UP/B).
 ## 12. Known caveats / TODO for future work
 
 - The project is at an early development stage — the public API is unstable.
-- `pricer`, `forecast`, `validation` are **planned** facade components (R3/T21) — not yet
-  present; when added they live as `options/*_class.py` over the shared `OptionsData`.
+- `pricer` is present (`OptionsPricer`, `options/pricer_class.py` over the shared `OptionsData`):
+  Black-76 forward pricing + IV and a volatility-smile fit (SVI / quadratic / SABR via
+  `make_smile_model`, butterfly no-arb checked) — `fit_smile` makes `price`/`iv` a model output.
+- `validation` is present (`OptionsValidation`, `options/validation_class.py`): semantic
+  data-quality checks in **two stages** — `validate_input` (pre-analysis gate: completeness, no-arb
+  price bounds, strike/timestamp sanity, duplicates) and `validate_model` (post-fit: positive model
+  IV, smile butterfly + calendar no-arb, fit residual) — both returning a **non-mutating**
+  `ValidationReport`; `clean` is the only opt-in remediation (defaults off). Distinct from the
+  pandera schemas (structure/dtype) — see `options/lib/validation`.
+- `forecast` is present (`OptionsForecast`, `options/forecast_class.py` over the shared
+  `OptionsData`; T27): a model factory along three axes — target × process/model × engine —
+  producing a distributional `ForecastResult` (point / quantiles / scenarios / change). Implemented:
+  **price** (`random_walk` / `gbm` / `garch`) and **vol** (`ewma` / `garch` / `har` / `realized`),
+  engines `analytic` / `montecarlo`, horizon calendar ACT/365. `smile` / `surface` targets remain
+  planned. Pure models/engines live in `options/lib/forecast` (pure-numpy, no scipy).
+- **`alphavar.flow`** (cross-domain result-chain / pipeline) is in **active co-design** — see
+  [`docs/dev/design/result-chain/`](design/result-chain/README.md) (widens [ADR 0003](decisions/0003-composable-result-chain.md)).
+  Direction: producers compose by a described **contract** (compatibility lives in schemas, not in any
+  orchestrator); `lib` stays pure `df+params→df` (Shape 1 enrichment = `df+cols`/Series via column
+  deps; Shape 2 reduction = a new-kind tidy frame); classes are a binding layer; `flow` (Registry in
+  code, `Plan` as declarative data) orchestrates a branching DAG. Not built yet.
 - `BinanceExchange` is a minimal implementation.
 - The v1 dictionary enums and the v2 `Term`/`OptionsTerm` registry + pandera schemas run in
   parallel until the T23 migration completes.

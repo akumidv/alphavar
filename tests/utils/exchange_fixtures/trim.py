@@ -1,6 +1,6 @@
 """Trim recorded exchange fixtures to a few diverse rows (test tooling, T11/D4).
 
-Offline, idempotent. The recorder (`_forge/tools/exchange_fixtures`) captures full live
+Offline, idempotent. The recorder (`agents/_dev/tools/exchange_fixtures`) captures full live
 responses; tests only assert structure (`len>0`, `iloc[0]`, value filters), so keep a
 handful of diverse rows per file and drop the rest (multi-MB -> ~40-50 kB per exchange).
 

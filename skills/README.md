@@ -5,22 +5,26 @@ How an AI assistant **uses alphavar** to solve a user's task. This is the **USAG
 built to travel into a downstream project that consumes alphavar, not to develop alphavar
 itself (that is `_forge/`).
 
-alphavar's archetype is **`package`**, so the keystone requirement applies: USAGE is a
-**domain-concept → implementing-function map**, not a bare API reference and not
-free-standing knowledge (see
-[ARCHETYPES.md](../_forge/keystone/ARCHETYPES.md) → "the domain-concept → function map").
+alphavar's archetype is **`package`**, so a USAGE skill is a **domain-concept →
+implementing-function map** (the usage end of the knowledge → impl → usage chain — see
+[keystone README §3b](../_forge/keystone/README.md) and
+[ARCHETYPES.md](../_forge/keystone/ARCHETYPES.md)). Not a bare API reference.
 
 ## The unit of USAGE: concept → function → how to apply
 
 Each skill connects three things, all **verified against `src/`**:
 
-1. **The domain concept** — what it is, sourced (e.g. a volatility smile, VaR, a Greek).
+1. **The domain concept** — what it is. For a rich concept (theory/sources), the full
+   description lives in a [`../knowledge/`](../knowledge/) leaf and the skill links it; for a
+   light concept, state it briefly here and in the function docstring (knowledge is
+   optional, §3b).
 2. **The implementing function** — the real public class/function in `alphavar.*` that
    computes it.
 3. **How to apply it** — inputs, units/conventions, failure modes, a worked example.
 
-A concept with **no** implementing function yet is a *gap* — record it as a design/impl
-task in [`../_forge/TASKS.md`](../_forge/TASKS.md), do not document it here as if it exists.
+A concept with **no** implementing function yet gets **no skill** — it is documented in
+`../knowledge/` (if rich) with an impl task in [`../_forge/TASKS.md`](../_forge/TASKS.md),
+or simply catalogued; add the skill only once the code exists.
 
 ## Map (domain concept → alphavar entry point)
 
@@ -36,17 +40,18 @@ task in [`../_forge/TASKS.md`](../_forge/TASKS.md), do not document it here as i
 | Strategy payoff (single-leg, straddle, …) | `alphavar.options.analytic_risk_class.OptionsAnalyticRisk.chain_payoff(legs)` + `OptionsLeg` | [strategy-payoff](strategy-payoff/SKILL.md) |
 | Exchange data (Deribit / Binance / MOEX) | `alphavar.io.exchange.*` — `DeribitExchange` / `BinanceExchange` / `MoexExchange` | [data-sources](data-sources/SKILL.md) |
 
-### Concept gaps — knowledge with **no** implementing function yet
+### Planned concepts — documented in `knowledge/`, **no skill yet**
 
-Per the keystone rule these are **not USAGE** — they are design/impl tasks
-([`../_forge/TASKS.md`](../_forge/TASKS.md)), not skills, until the function exists:
+These are **planned but not yet coded**, so per the keystone rule they get **no USAGE
+skill** until the function exists. They live as `../knowledge/` leaves (marked "planned")
+with impl tasks:
 
-| Concept | Status in `src/` |
-|---|---|
-| Full Greeks (delta/gamma/theta/rho) | only `bs_vega` exists; the rest are not implemented |
-| VaR (historical / parametric / Monte-Carlo) | not implemented |
-| CVaR / Expected Shortfall | not implemented |
-| Sortino ratio | not implemented |
+| Concept | `knowledge/` leaf | Task | Status in `src/` |
+|---|---|---|---|
+| Full Greeks (delta/gamma/theta/rho) | `knowledge/options/pricing/greeks.md` | T36 | only `bs_vega` exists |
+| VaR (historical / parametric / MC) | `knowledge/risk/var/methods.md` | T31–T33 | not implemented |
+| CVaR / Expected Shortfall | `knowledge/risk/var/cvar-expected-shortfall.md` | T31–T33 | not implemented |
+| Sortino ratio | `knowledge/risk/ratios/sortino.md` | T36 | not implemented |
 
 (When one lands, add a `concept → function → how to apply` skill and move it up into the
 map above.)

@@ -140,6 +140,12 @@ new provider, no caller changes" rule.
   (dependency injection of shared state). New capability areas (pricer, forecast,
   validation) follow the same pattern: a component class taking `OptionsData` in its
   constructor, exposed as an attribute of `Option`.
+- **Model-factory pattern.** A capability area that offers *interchangeable algorithms*
+  exposes them through a pure-`lib` factory: an abstract base + a name→class registry + a
+  `make_*` selector (instance pass-through; unknown name → `ValueError`, catalogued-but-unbuilt
+  → `NotImplementedError`). Adding an algorithm = a subclass + a registry entry, no caller
+  change. Established by smile (`make_smile_model`); forecast generalizes it to three orthogonal
+  axes — target × process × engine — see [ADR 0002](decisions/0002-forecast-model-factory-axes.md).
 
 ## R4. Data dictionary discipline
 

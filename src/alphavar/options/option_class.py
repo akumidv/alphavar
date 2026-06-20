@@ -10,8 +10,10 @@ from alphavar.options.chain_class import OptionsChain
 from alphavar.options.chart_class import ChartClass
 from alphavar.options.dictionary import Timeframe
 from alphavar.options.enrichment_class import OptionsEnrichment
+from alphavar.options.forecast_class import OptionsForecast
 from alphavar.options.option_data_class import OptionsData
 from alphavar.options.pricer_class import OptionsPricer
+from alphavar.options.validation_class import OptionsValidation
 
 
 class Option:
@@ -33,6 +35,8 @@ class Option:
         self.analytic: OptionsAnalytic = OptionsAnalytic(self._data)
         self.chart: ChartClass = ChartClass(self._data)
         self.pricer: OptionsPricer = OptionsPricer(self._data)
+        self.validation: OptionsValidation = OptionsValidation(self._data)
+        self.forecast: OptionsForecast = OptionsForecast(self._data)
 
     @property
     def asset_code(self) -> str:
