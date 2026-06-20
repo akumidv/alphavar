@@ -3,7 +3,7 @@
 ↑ Parent: [options/](../README.md)
 
 P&L of a position as a function of the underlying price. In-repo:
-`src/alphavar/options_lib/analytic/risk/payoff.py`.
+`src/alphavar/options/lib/analytic/risk/payoff.py`.
 
 Two curves per position:
 - **At expiration** (`risk_pnl`) — intrinsic payoff minus premium (hockey-stick).

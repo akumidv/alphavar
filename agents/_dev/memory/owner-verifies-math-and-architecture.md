@@ -12,7 +12,7 @@ tests are necessary but not sufficient.
 trading library; an unverified-but-green implementation is worse than asking, because
 wrong financial math looks correct.
 
-**How to apply:** mark unverified code `# К ПРОВЕРКЕ / TO VERIFY (owner)`, keep the prior
+**How to apply:** mark unverified code `# 4VERIFY (owner)`, keep the prior
 version commented (marked the same) so the owner can compare, and mark the task "pending
 owner verification" (not "Done"). When in doubt, present options and ask rather than
 silently implement.

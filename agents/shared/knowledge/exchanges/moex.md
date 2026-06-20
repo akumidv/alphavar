@@ -3,7 +3,7 @@
 > Concentrated reference. Verify against the live ISS docs (drift). Sources:
 > [MOEX ISS reference](https://iss.moex.com/iss/reference/) ·
 > [ISS dev guide (PDF)](https://fs.moex.com/files/6523) ·
-> in-repo `src/alphavar/exchange/moex.py`.
+> in-repo `src/alphavar/io/exchange/moex.py`.
 
 - **API:** MOEX **ISS** (Informational & Statistical Server), public REST over HTTPS,
   base `https://iss.moex.com/iss`. Responses as JSON (`?iss.meta=off&iss.json=extended`)

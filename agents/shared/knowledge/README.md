@@ -37,7 +37,7 @@ entity file or subfolder, **update its parent README** in the same change.
   it into context (token-efficient, see DEVELOPMENT_REQUIREMENTS D4).
 - **Every non-obvious fact carries a source** inline: `[short label](url)` to the
   authoritative origin (official API docs, exchange spec, a textbook/paper, or the
-  in-repo implementation that encodes it, e.g. `src/alphavar/exchange/deribit.py`).
+  in-repo implementation that encodes it, e.g. `src/alphavar/io/exchange/deribit.py`).
 - **Mark confidence/recency:** specifics drift — note "as of <date>" and link the live
   source. If unsure, say so and link the source rather than guess.
 - **Re-query path:** when a note is missing detail, follow its source link (or fetch the

@@ -45,7 +45,7 @@ Deribit/MOEX.
 
 5. **D2 — owner verification.** The normalization (any DataFrame derivation / column
    semantics) and the API mapping are math/architecture: explain the logic, mark
-   `# К ПРОВЕРКЕ / TO VERIFY (owner)`, and request approval. Passing tests are not enough.
+   `# 4VERIFY (owner)`, and request approval. Passing tests are not enough.
 
 ## Done / verify checklist
 
@@ -54,4 +54,4 @@ Deribit/MOEX.
 - [ ] No public method takes `symbol`/`exch_symbol`; no raw enum value sent on the wire.
 - [ ] Output uses registry column names + canonical axes; `pytest` schema validation green.
 - [ ] Exchange suite hermetic (fast, no network) via recorded fixtures.
-- [ ] `pytest` + `pylint src/` green; normalization/mapping marked for owner verification.
+- [ ] `pytest` + `ruff check` green; normalization/mapping marked for owner verification.

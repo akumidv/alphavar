@@ -2,7 +2,7 @@
 
 ↑ Parent: [knowledge/](../README.md)
 
-Options theory needed to develop `alphavar`. In-repo code: `src/alphavar/options_lib/`.
+Options theory needed to develop `alphavar`. In-repo code: `src/alphavar/options/`.
 
 Children:
 - [concepts.md](concepts.md) — contract basics, moneyness, intrinsic/time value.

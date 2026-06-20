@@ -1,10 +1,16 @@
-"""Core (domain-neutral) dictionary: the single entity-name registry (R4.3) and the
-neutral classification-axis enums (R4.5)."""
-from alphavar.core.dictionary._columns import Col
-from alphavar.core.dictionary._registry import column_names, assert_unique
-from alphavar.core.dictionary._classification import InstrumentKind, AssetClass, ContractKind
+"""Core (domain-neutral) dictionary: the single data-term registry (``Term``, R4.3 — one
+canonical name per concept, used as column / variable / parameter) and the neutral
+classification-axis enums (R4.5)."""
+
+from alphavar.core.dictionary._classification import AssetClass, ContractKind, InstrumentKind
+from alphavar.core.dictionary._registry import assert_unique, column_names
+from alphavar.core.dictionary._terms import Term
 
 __all__ = [
-    "Col", "column_names", "assert_unique",
-    "InstrumentKind", "AssetClass", "ContractKind",
+    "Term",
+    "column_names",
+    "assert_unique",
+    "InstrumentKind",
+    "AssetClass",
+    "ContractKind",
 ]

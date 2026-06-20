@@ -2,10 +2,10 @@
 
 Exchange-agnostic capture: patches a client's ``session.get`` to save each raw JSON body
 keyed by request path (+sorted query). Per-exchange modules (``deribit.py``, ``moex.py``)
-only declare *what to call*, reusing the real `alphavar.exchange` API — they never
+only declare *what to call*, reusing the real `alphavar.io.exchange` API — they never
 re-implement HTTP requests (that logic already lives in the exchange classes).
 
-Output: ``tests/unit/exchange/fixtures/<exchange>/`` (``index.json`` path→file, ``<n>.json``
+Output: ``tests/unit/io/exchange/fixtures/<exchange>/`` (``index.json`` path→file, ``<n>.json``
 bodies). Full responses are large — always run the trimmer (``tests/utils``) afterwards.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ import os
 
 # This file is at agents/_dev/tools/exchange_fixtures/_record.py -> repo root is four up.
 FIXTURES_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'tests', 'unit', 'exchange', 'fixtures')
+    os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'tests', 'unit', 'io', 'exchange', 'fixtures')
 )
 
 

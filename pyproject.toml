@@ -29,7 +29,6 @@ dependencies = [
     "httpx>=0.28.1,<1",
     "matplotlib>=3.9.0,<4",
     "cachetools==6.2.0",
-    "psutil>=6.0,<7",
 ]
 
 [project.optional-dependencies]
@@ -46,7 +45,7 @@ Documentation = "https://alphavar.dev"
 dev = [
     "setuptools>=80.9.0,<81",
     "jupyter>=1.1.1,<2",
-    "pylint>=3.3.4,<4",
+    "ruff>=0.9,<1",
     "twine>=6.0.0,<7",
 ]
 test = [
@@ -76,30 +75,25 @@ env_files = [
 testpaths = [
     "tests",
 ]
-# Unit suite is hermetic by default (T11/D1). Integration tests hit live exchange APIs
-# or do heavy multi-asset walks — opt in with `pytest -m integration`.
+# Unit suite is hermetic by default (T11/D1). Integration tests hit a live external API
+# (exchange, Telegram, …) or do heavy multi-asset walks — opt in with `pytest -m integration`.
 addopts = "-m 'not integration'"
 markers = [
-    "integration: hits a live exchange API or walks many assets; deselected by default",
+    "integration: hits a live external API (exchange, Telegram, …) or walks many assets; deselected by default",
 ]
 
 
-[tool.pylint.MASTER]
-extension-pkg-whitelist = 'numpy'
-init-hook = 'import sys; sys.path.append("./src"); sys.path.append("./tests")'
-no-docstring-rgx = '^_|^test_' # _private and test_ fucntions
-#protected-access = '^test_' # unknown options
+[tool.ruff]
+line-length = 120
+target-version = "py314"
 
-[tool.pylint.basic]
-good-names='logger'
-ignore='vendor'
+[tool.ruff.lint]
+# pyflakes (F) + pycodestyle errors/warnings (E/W) + isort (I) + pyupgrade (UP) + bugbear (B).
+select = ["F", "E", "W", "I", "UP", "B"]
 
-[tool.pylint.DESIGN]
-max-positional-arguments = 6
-max-args = 8
-
-[tool.pylint.typecheck]
-ignored-modules='numpy'
-
-[tool.pylint.FORMAT]
-max-line-length = 120
+[tool.ruff.lint.per-file-ignores]
+# tests may redefine fixtures and assert on broad exceptions (rejection paths).
+"tests/**" = ["F811", "B011", "B017"]
+# payoff.py keeps the prior implementation commented for owner D2 verification (T14b) —
+# do not reflow it; the long lines are in that preserved block.
+"src/alphavar/options/lib/analytic/risk/payoff.py" = ["E501"]

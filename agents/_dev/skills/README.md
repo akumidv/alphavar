@@ -31,3 +31,8 @@ tool's code.
   `tests/utils/exchange_fixtures`).
 - [`add-exchange-source.md`](add-exchange-source.md) — knowledge: how to add a new
   exchange provider end-to-end (no single tool; an ordered pipeline across layers).
+- [`migrate-stored-data.md`](migrate-stored-data.md) — tool-driven: convert accumulated
+  history **and** updates to the current schema — column conversion
+  (`alphavar.core.migration.legacy_parquet`) + reference meta formation
+  (`alphavar.options.etl.reference_migration`). Codifies that new legacy/edge cases are
+  encoded in the tools (+ a test), never a throwaway script.

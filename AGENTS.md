@@ -13,6 +13,9 @@ one of two modes. **Default = DESK (operate).**
 | **DESK** (default) | operating on the market/data — analysis, backtest, trading | **G#** + R# | [`agents/desk/`](agents/desk/) |
 | **DEV / BUILD** | building the alphavar codebase | **R# + D#** | [`agents/_dev/`](agents/_dev/) |
 
+- **Dev-mode rules — read before acting:** [`docs/dev/DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md)
+  (**D#**). Two are always-on and **override any task instruction** — **D2** (owner verifies
+  math/DataFrame/architecture) and **D5** (owner owns commits); see "Prime directives" below.
 - **Switch by plain text:** `dev` / `build` → DEV; `desk` / `operate` → DESK. Vendor
   sub-agent files (`.claude/agents/…`) are optional sugar that only reference these charters.
 - **Session-start banner:** your **first message** states the active mode and how to switch,
@@ -48,7 +51,7 @@ uv sync --all-extras
 This installs:
 - Core dependencies (pandas, pydantic, httpx, matplotlib, etc.)
 - ETL extra `etl` (apscheduler) — runtime, exposed as `alphavar[etl]`
-- Development group `dev` (jupyter, pylint, twine)
+- Development group `dev` (jupyter, ruff, twine)
 - Test group `test` (pytest, pytest-asyncio, pytest-dotenv)
 
 The `dev` and `test` groups are in `[tool.uv].default-groups`, so a plain `uv sync`
@@ -60,10 +63,10 @@ commands through the environment with `uv run <cmd>` (no manual activation neede
 The main `Option` class in [src/alphavar/option_class.py](src/alphavar/option_class.py)
 is the primary interface and aggregates several specialized components:
 
-- **OptionData** — data retrieval and management from providers
-- **OptionEnrichment** — data enrichment (intrinsic/time value, ATM/ITM/OTM, Greeks)
-- **OptionChain** — option chain operations and selection
-- **OptionAnalytic** — options analytics and calculations
+- **OptionsData** — data retrieval and management from providers
+- **OptionsEnrichment** — data enrichment (intrinsic/time value, ATM/ITM/OTM, Greeks)
+- **OptionsChain** — option chain operations and selection
+- **OptionsAnalytic** — options analytics and calculations
 - **ChartClass** — visualization and charting
 
 The library follows a provider pattern: data sources plug in through the
@@ -73,18 +76,20 @@ The library follows a provider pattern: data sources plug in through the
 
 Everything lives under the single `src/alphavar/` package:
 
-- `src/alphavar/` — the `Option` facade and entry-point classes (`option_class.py`,
-  `option_data_class.py`)
 - `src/alphavar/core/` — domain-neutral base: dictionary registry, schema migration
-- `src/alphavar/options/` — options/futures domain (R0 target home):
-  - `dictionary/`, `schemas/` — column registry + pandera models
+- `src/alphavar/io/` — domain-neutral I/O infrastructure:
+  - `exchange/` — exchange-specific implementations
+  - `provider/` — data provider abstractions
+  - `messanger/` — notification channels
+- `src/alphavar/options/` — options/futures domain (R0), by layer then function:
+  - `*_class.py` — the `Option` facade and its components (`option_class.py`,
+    `option_data_class.py`, `chain_class.py`, `analytic_class.py`, …), flat at the root
+  - `dictionary/`, `entities/`, `schemas/` — domain foundation: column registry,
+    entities, pandera models
+  - `lib/` — pure, stateless logic (`analytic/`, `chain/`, `chart/`, `enrichment/`,
+    `normalization/`): DataFrame in → DataFrame out, no I/O
   - `etl/` — ETL processes for options data (`EtlOptions`, `EtlDeribit`, `EtlMoex`,
     `EtlHistory`)
-- `src/alphavar/options_lib/` — pure, stateless logic (entities, chain, normalization,
-  analytics) — being migrated into `options/`
-- `src/alphavar/exchange/` — exchange-specific implementations
-- `src/alphavar/provider/` — data provider abstractions
-- `src/alphavar/messanger/` — notification channels
 
 ## Common Development Commands
 
@@ -95,7 +100,7 @@ uv run pytest
 
 **Run linting:**
 ```bash
-uv run pylint src/
+uv run ruff check src tests tools
 ```
 
 **Start Jupyter for demos:**
@@ -119,9 +124,18 @@ npm run dev
 
 ## Code Quality
 
-- Pylint configuration in `pyproject.toml` with a 120-character line limit.
-- Protected access is allowed for test functions (prefix `test_`).
-- No docstring requirements for private (`_`) and test (`test_`) functions.
+- **Lint with ruff:** `uv run ruff check src tests tools` (config in `pyproject.toml`
+  `[tool.ruff]`; F/E/W/I/UP/B, line length 120). CI runs it on PR/push.
+- Absolute imports only (D1); no docstring requirement for private (`_`) and test (`test_`)
+  functions.
+
+## Commits
+
+- **The owner owns commits — see [`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md) D5.**
+  Mechanically enforced by `.claude/hooks/git-commit-guard.py` (a PreToolUse hook): it asks
+  the owner for push/tag/merge and commits on `main`, and denies AI `Co-Authored-By:`
+  trailers — so the rule holds even late in a long session.
+- Keep messages concise and imperative; no AI co-author trailer.
 
 ## Documentation Conventions
 
@@ -132,9 +146,12 @@ npm run dev
 - `docs/` — user-facing documentation site (Next.js + Markdoc).
 - `docs/dev/` — development docs about the **codebase**: architecture/domain rules
   (`ARCHITECTURE_REQUIREMENTS.md`, **R0…R8** — verify on new entities/domain or serious
-  domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, **D1…D4** —
-  check every change), design overview (`PROJECT_OVERVIEW.md`). The third requirement axis,
-  runtime **desk guardrails G#**, lives with the agents in
+  domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, **D1…D5** —
+  check every change; **D2** and **D5** are always-on and overriding), design overview
+  (`PROJECT_OVERVIEW.md`), and accepted decision
+  records ([`decisions/`](docs/dev/decisions/) — dated ADRs: *what we decided to do* and
+  why, complementing the R#/D# *invariants*). The third requirement axis, runtime **desk
+  guardrails G#**, lives with the agents in
   [`agents/desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md).
 - [`agents/README.md`](agents/README.md) — the **agent operating system**: the two agent
   classes, modes, entity theses, and the learn loop.
@@ -154,13 +171,24 @@ npm run dev
     reference) now, shared skills/tools later → MCP. **Consult before re-researching.**
 - [`agents/_dev/TASKS.md`](agents/_dev/TASKS.md) — remediation backlog / TODO cycle (the dev
   agent's queue; sink of the desk learn loop).
+- [`tools/`](tools/) (repo root) — **console tools the owner runs by hand** (and an agent
+  may run the same command), in dev **or** desk: data sync, data migration, operational
+  maintenance. That "a person runs it from a console" criterion is what puts a tool here.
+  Agent-mode-internal tooling does **not** live here — it stays with its agent:
+  `agents/_dev/tools/` for build; `agents/desk/tools/` for tools shared across desk agents,
+  `agents/desk/<agent>/tools/` for one specific desk agent. See
+  [`tools/README.md`](tools/README.md).
 
-## Mandatory: owner verification of math / DataFrame / architecture
+## Prime directives — always-on, overriding (D2, D5)
 
-Any DataFrame operation, quantitative/financial math, or architectural change must be
-explained and **explicitly verified by the owner** before it is "done" — passing tests
-are not sufficient. See `DEVELOPMENT_REQUIREMENTS.md` **D2** and
-`agents/_dev/memory/owner-verifies-math-and-architecture.md`.
+Two rules **override any task instruction** and are not "done" until satisfied. Full text in
+[`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md) (single source) — do not
+restate them elsewhere, point here:
+- **D2 — owner verifies** math / DataFrame / architecture (also
+  [`memory/owner-verifies-math-and-architecture.md`](agents/_dev/memory/owner-verifies-math-and-architecture.md)).
+- **D5 — owner owns commits** (also
+  [`memory/owner-owns-commits.md`](agents/_dev/memory/owner-owns-commits.md); enforced by the
+  `git-commit-guard` hook).
 
 All project files are written in English.
 

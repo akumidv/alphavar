@@ -2,7 +2,7 @@
 
 > Concentrated reference. Verify API specifics against the live docs (they drift). Sources:
 > [Deribit API v2 docs](https://docs.deribit.com/) ·
-> in-repo `src/alphavar/exchange/deribit.py` (normalizers, rename maps).
+> in-repo `src/alphavar/io/exchange/deribit.py` (normalizers, rename maps).
 
 - **API:** Deribit API **v2**, public market-data endpoints over **HTTPS** (REST + WS;
   this project uses REST). Base: `https://www.deribit.com` (testnet:

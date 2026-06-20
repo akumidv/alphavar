@@ -1,99 +1,98 @@
 """Main test configuration"""
-import os
+
 import datetime
-import pytest
-import pandas as pd
+import os
 from functools import lru_cache
 
-from alphavar.options_lib.dictionary import LegType, AssetKind, Timeframe, OptionsColumns as OCl
-from alphavar.options_lib.entities import OptionsLeg
-from alphavar.options_lib.enrichment import join_option_with_future
-from alphavar.options_lib.chain.chain_selector import select_chain, get_max_settlement_valid_expired_date
-from alphavar.options_lib.chain.price_status import get_chain_atm_strike
+import pandas as pd
+import pytest
 
-from alphavar.option_data_class import OptionData
-from alphavar.provider import PandasLocalFileProvider, RequestParameters
+from alphavar.core.dictionary import InstrumentKind
+from alphavar.io.exchange.deribit import DeribitExchange
+from alphavar.io.exchange.moex import MoexExchange
+from alphavar.io.provider import PandasLocalFileProvider, RequestParameters
+from alphavar.options.dictionary import LegType, OptionsTerm, Timeframe
+from alphavar.options.entities import OptionsLeg
+from alphavar.options.lib.chain.chain_selector import get_max_settlement_valid_expired_date, select_chain
+from alphavar.options.lib.chain.price_status import get_chain_atm_strike
+from alphavar.options.lib.enrichment import join_option_with_future
+from alphavar.options.option_data_class import OptionsData
 
-from alphavar.exchange.deribit import DeribitExchange
-from alphavar.exchange.moex import MoexExchange
-
-
-# Default to the repo-local `data/` (a developer symlink to the local market-data store),
-# resolved relative to this file so it is independent of the pytest working directory.
-# Override with the DATA_PATH env var (e.g. in test.env). T11 will replace this with a
-# committed hermetic fixture set.
-_DEFAULT_DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data')
-_DATA_PATH = os.path.normpath(os.path.abspath(os.environ.get('DATA_PATH', _DEFAULT_DATA_PATH)))
+# Default to the committed hermetic fixture set (small, trimmed; built by
+# `tools/build_ci_fixtures.py`) so a clean checkout is green with no local data (T11).
+# Override with the DATA_PATH env var (e.g. point it at the full local `./data` tree for
+# richer local runs), resolved relative to this file (independent of the cwd).
+_DEFAULT_DATA_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "data")
+_DATA_PATH = os.path.normpath(os.path.abspath(os.environ.get("DATA_PATH", _DEFAULT_DATA_PATH)))
 
 # Single scratch directory for any artefacts tests write (charts, dumps, etc.),
 # at the project root and git-ignored. Exposed both as the `ALPHAVAR_TMP_DIR` env var
 # (so plain helper functions can find it without a fixture) and the `tmp_output_dir`
 # fixture. conftest is imported before any test, so the env var is always set.
-_TMP_DIR = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.tmp')))
+_TMP_DIR = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".tmp")))
 os.makedirs(_TMP_DIR, exist_ok=True)
-os.environ.setdefault('ALPHAVAR_TMP_DIR', _TMP_DIR)
+os.environ.setdefault("ALPHAVAR_TMP_DIR", _TMP_DIR)
 
 
-@pytest.fixture(name='tmp_output_dir')
+@pytest.fixture(name="tmp_output_dir")
 def fixture_tmp_output_dir() -> str:
     """Project-root `.tmp/` directory for test output artefacts (git-ignored)."""
     return _TMP_DIR
 
 
-pd.set_option('display.max_columns', 50)
-pd.set_option('display.width', 200)
-pd.set_option('display.max_rows', 300)
+pd.set_option("display.max_columns", 50)
+pd.set_option("display.width", 200)
+pd.set_option("display.max_rows", 300)
 
 _CACHE = {}
 
 
-@pytest.fixture(name='data_path')
+@pytest.fixture(name="data_path")
 def fixture_data_path() -> str:
-    """ Local file storage path """
+    """Local file storage path"""
     return _DATA_PATH
 
 
-@pytest.fixture(name='update_path')
+@pytest.fixture(name="update_path")
 def fixture_update_data_path() -> str:
-    """ Local file storage path """
-    return f'{_DATA_PATH}/update'
+    """Local file storage path"""
+    return f"{_DATA_PATH}/update"
 
 
-@pytest.fixture(name='exchange_code')
+@pytest.fixture(name="exchange_code")
 def fixture_exchange_code() -> str:
-    """ In future from combination exchange / symbol? """
-    return 'DERIBIT'
+    """In future from combination exchange / symbol?"""
+    return "DERIBIT"
 
 
-@pytest.fixture(name='option_symbol')
+@pytest.fixture(name="asset_code")
 def fixture_option_symbol() -> str:
-    """ Option symbol for tests"""
-    return 'BTC'
+    """Option symbol for tests"""
+    return "BTC"
 
 
-@pytest.fixture(name='exchange_provider')
+@pytest.fixture(name="exchange_provider")
 def fixture_exchange_provider(exchange_code, data_path) -> PandasLocalFileProvider:
     """Local provider"""
     return PandasLocalFileProvider(exchange_code=exchange_code, data_path=data_path)
 
 
-@pytest.fixture(name='option_data')
-def fixture_option_data(exchange_provider, option_symbol, provider_params):
+@pytest.fixture(name="option_data")
+def fixture_option_data(exchange_provider, asset_code, provider_params):
     """Option data instance"""
-    opt_data = OptionData(exchange_provider, option_symbol, provider_params)
+    opt_data = OptionsData(exchange_provider, asset_code, provider_params)
     return opt_data
 
 
-def _get_update_file_list(base_path: str, asset_kind: AssetKind):
-    asset_kind_path = os.path.abspath(
-        os.path.normpath(os.path.join(base_path, asset_kind.value)))
+def _get_update_file_list(base_path: str, asset_kind: InstrumentKind):
+    asset_kind_path = os.path.abspath(os.path.normpath(os.path.join(base_path, asset_kind.value)))
     max_depth = 3
     timeframes = os.listdir(asset_kind_path)
     updates_files = []
     for tm in timeframes:
         timeframe_path = os.path.join(asset_kind_path, tm)
-        for root_path, dirs, files in os.walk(timeframe_path):
-            if root_path[len(timeframe_path):].count(os.sep) > max_depth:
+        for root_path, _dirs, files in os.walk(timeframe_path):
+            if root_path[len(timeframe_path) :].count(os.sep) > max_depth:
                 break
             if not files:
                 continue
@@ -105,106 +104,113 @@ def _get_update_file_list(base_path: str, asset_kind: AssetKind):
     return updates_files
 
 
-@pytest.fixture(name='option_update_files')
+@pytest.fixture(name="option_update_files")
 @lru_cache
-def option_update_files_fixture(update_path, exchange_code, option_symbol):
-    if _CACHE.get('_update_files') is None:
-        _CACHE['_update_files'] = _get_update_file_list(os.path.join(update_path, exchange_code, option_symbol),
-                                                        AssetKind.OPTIONS)
-    return _CACHE['_update_files']
+def option_update_files_fixture(update_path, exchange_code, asset_code):
+    if _CACHE.get("_update_files") is None:
+        # Update store uses venue-native singular kind tokens (ADR 0001); for Deribit these
+        # equal the canonical InstrumentKind value.
+        _CACHE["_update_files"] = _get_update_file_list(
+            os.path.join(update_path, exchange_code, asset_code), InstrumentKind.OPTION
+        )
+    return _CACHE["_update_files"]
 
 
-@pytest.fixture(name='future_update_files')
+@pytest.fixture(name="future_update_files")
 @lru_cache
-def future_update_files_fixture(update_path, exchange_code, option_symbol):
-    updates_files = _get_update_file_list(os.path.join(update_path, exchange_code, option_symbol), AssetKind.FUTURES)
+def future_update_files_fixture(update_path, exchange_code, asset_code):
+    updates_files = _get_update_file_list(
+        os.path.join(update_path, exchange_code, asset_code), InstrumentKind.FUTURE
+    )
     return updates_files
 
 
-@pytest.fixture(name='provider_params')
-def fixture_provider_params(exchange_provider, option_symbol):
+@pytest.fixture(name="provider_params")
+def fixture_provider_params(exchange_provider, asset_code):
     cur_dt = datetime.date.today()
-    fn_path = exchange_provider._fn_path_prepare(option_symbol, AssetKind.OPTIONS, Timeframe.EOD, cur_dt.year)
+    fn_path = exchange_provider._fn_path_prepare(asset_code, InstrumentKind.OPTION, Timeframe.EOD, cur_dt.year)
     if not os.path.exists(fn_path):
         list_of_files = sorted(os.listdir(os.path.dirname(fn_path)))
         if len(list_of_files) == 0:
-            raise FileNotFoundError(f'There is no data for {option_symbol}')
+            raise FileNotFoundError(f"There is no data for {asset_code}")
         last_year_fn = list_of_files[-1]
-        if not last_year_fn.endswith('parquet'):
-            raise FileNotFoundError(f'There is no data for {option_symbol}')
-        cur_dt = datetime.date.fromisoformat(f'{last_year_fn.replace(".parquet", "")}-01-01')
-    params = RequestParameters(period_from=None, period_to=cur_dt.year,
-                               timeframe=Timeframe.EOD)
+        if not last_year_fn.endswith("parquet"):
+            raise FileNotFoundError(f"There is no data for {asset_code}")
+        cur_dt = datetime.date.fromisoformat(f"{last_year_fn.replace('.parquet', '')}-01-01")
+    params = RequestParameters(period_from=None, period_to=cur_dt.year, timeframe=Timeframe.EOD)
     return params
 
 
-@pytest.fixture(name='df_opt_hist')
-def fixture_df_hist(option_symbol, exchange_provider, provider_params):
+@pytest.fixture(name="df_opt_hist")
+def fixture_df_hist(asset_code, exchange_provider, provider_params):
     """Option dataframe"""
-    if _CACHE.get('DF_OPT') is None:
-        _CACHE['DF_OPT'] = exchange_provider.load_options_history(asset_code=option_symbol, params=provider_params,
-                                                                 columns=exchange_provider.options_columns)
-    return _CACHE['DF_OPT'].copy()
+    if _CACHE.get("DF_OPT") is None:
+        _CACHE["DF_OPT"] = exchange_provider.load_options_history(
+            asset_code=asset_code, params=provider_params, columns=exchange_provider.options_columns
+        )
+    return _CACHE["DF_OPT"].copy()
 
 
-@pytest.fixture(name='df_fut_hist')
-def fixture_df_fut(option_symbol, exchange_provider, provider_params):
+@pytest.fixture(name="df_fut_hist")
+def fixture_df_fut(asset_code, exchange_provider, provider_params):
     """Future dataframe"""
-    if _CACHE.get('DF_FUT') is None:
-        _CACHE['DF_FUT'] = exchange_provider.load_futures_history(asset_code=option_symbol, params=provider_params,
-                                                                 columns=exchange_provider.futures_columns)
-    return _CACHE['DF_FUT'].copy()
+    if _CACHE.get("DF_FUT") is None:
+        _CACHE["DF_FUT"] = exchange_provider.load_futures_history(
+            asset_code=asset_code, params=provider_params, columns=exchange_provider.futures_columns
+        )
+    return _CACHE["DF_FUT"].copy()
 
 
-@pytest.fixture(name='df_ext_hist')
+@pytest.fixture(name="df_ext_hist")
 def fixture_df_ext_hist(df_opt_hist, df_fut_hist):
     """Option dataframe with future"""
-    if _CACHE.get('DF_EXT_OPT') is None:
-        _CACHE['DF_EXT_OPT'] = join_option_with_future(df_opt_hist, df_fut_hist)
-    return _CACHE['DF_EXT_OPT'].copy()
+    if _CACHE.get("DF_EXT_OPT") is None:
+        _CACHE["DF_EXT_OPT"] = join_option_with_future(df_opt_hist, df_fut_hist)
+    return _CACHE["DF_EXT_OPT"].copy()
 
 
-@pytest.fixture(name='df_chain')
+@pytest.fixture(name="df_chain")
 def fixture_df_chain(df_opt_hist):
     """Option dataframe with future"""
-    if _CACHE.get('DF_CHAIN') is None:
-        _CACHE['DF_CHAIN'] = select_chain(df_opt_hist)
-    return _CACHE['DF_CHAIN'].copy()
+    if _CACHE.get("DF_CHAIN") is None:
+        _CACHE["DF_CHAIN"] = select_chain(df_opt_hist)
+    return _CACHE["DF_CHAIN"].copy()
 
 
-@pytest.fixture(name='df_chain_exp_len')
+@pytest.fixture(name="df_chain_exp_len")
 def fixture_df_chain_exp_len(df_opt_hist):
     """Option dataframe with future"""
-    if _CACHE.get('MIN_CHAIN_EXPIRATION_LEN') is None:
+    if _CACHE.get("MIN_CHAIN_EXPIRATION_LEN") is None:
         expiration_date = get_max_settlement_valid_expired_date(df_opt_hist)
-        _CACHE['MIN_CHAIN_EXPIRATION_LEN'] = len(df_opt_hist[df_opt_hist[OCl.EXPIRATION_DATE.nm] ==
-                                                             expiration_date][OCl.TIMESTAMP.nm].unique())
-    return _CACHE['MIN_CHAIN_EXPIRATION_LEN']
+        _CACHE["MIN_CHAIN_EXPIRATION_LEN"] = len(
+            df_opt_hist[df_opt_hist[OptionsTerm.EXPIRATION_DATE] == expiration_date][OptionsTerm.TIMESTAMP].unique()
+        )
+    return _CACHE["MIN_CHAIN_EXPIRATION_LEN"]
 
 
-@pytest.fixture(name='atm_strike')
+@pytest.fixture(name="atm_strike")
 def atm_strike_fixture(df_chain):
     """Current  ATM strike value"""
-    if _CACHE.get('ATM_STRIKE') is None:
-        _CACHE['ATM_STRIKE'] = get_chain_atm_strike(df_chain)
-    return _CACHE['ATM_STRIKE']
+    if _CACHE.get("ATM_STRIKE") is None:
+        _CACHE["ATM_STRIKE"] = get_chain_atm_strike(df_chain)
+    return _CACHE["ATM_STRIKE"]
 
 
-@pytest.fixture(name='structure_long_call')
+@pytest.fixture(name="structure_long_call")
 def structure_long_call_fixture(atm_strike):
     """Legs for Naked Long Call"""
     structure_legs = [OptionsLeg(strike=atm_strike, lots=10, type=LegType.OPTIONS_CALL)]
     return structure_legs
 
 
-@pytest.fixture(name='structure_long_put')
+@pytest.fixture(name="structure_long_put")
 def structure_long_put_fixture(atm_strike):
     """Legs for Naked Long Put"""
     structure_legs = [OptionsLeg(strike=atm_strike, lots=10, type=LegType.OPTIONS_PUT)]
     return structure_legs
 
 
-@pytest.fixture(name='structure_long_straddle')
+@pytest.fixture(name="structure_long_straddle")
 def structure_long_straddle_fixture(atm_strike):
     """Legs for Long Straddle"""
     structure_legs = [
@@ -214,19 +220,20 @@ def structure_long_straddle_fixture(atm_strike):
     return structure_legs
 
 
-@pytest.fixture(name='deribit_client')
+@pytest.fixture(name="deribit_client")
 def deribit_client_fixture():
     """Deribit client"""
     deribit = DeribitExchange(api_url=DeribitExchange.TEST_API_URL)
     return deribit
 
 
-@pytest.fixture(name='moex_exchange')
+@pytest.fixture(name="moex_exchange")
 def moex_exchange_fixture():
     """Moex client"""
     moex = MoexExchange(api_url=MoexExchange.TEST_API_URL)
     return moex
 
-@pytest.fixture(name='moex_asset_code')
+
+@pytest.fixture(name="moex_asset_code")
 def moex_asset_code_fixture():
-    return 'SI'
+    return "SI"
