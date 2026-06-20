@@ -4,7 +4,7 @@
 > we write, test, and land changes. Check these on **every** change/PR. They are vendor-
 > neutral (all AI assistants + humans). For the structural invariants of the system
 > (verified when adding new entities/domain or making serious changes to the existing
-> domain model) see the companion [ARCHITECTURE_REQUIREMENTS.md](ARCHITECTURE_REQUIREMENTS.md).
+> domain model) see the companion [ARCHITECTURE_REQUIREMENTS.md](../docs/dev/ARCHITECTURE_REQUIREMENTS.md).
 >
 > Numbering: `D#` here (development), `R#` in the architecture document.
 >
@@ -59,7 +59,7 @@ This is a hard, always-on rule — it overrides "make the tests pass":
 - `DATA_PATH` is read from `test.env`; test artefacts (charts, dumps) go to the
   git-ignored `.tmp/` via the `tmp_output_dir` fixture.
 - Details and other operational gotchas:
-  [_forge/memory/env-and-test-running.md](_forge/memory/env-and-test-running.md).
+  [_forge/memory/env-and-test-running.md](memory/env-and-test-running.md).
 
 ## D4. Token efficiency — prefer tools implemented as code
 
@@ -76,9 +76,9 @@ as a real constraint, not an afterthought.
   path, not the contents).
 - When adding a capability an assistant will reuse, package it as code under the project
   (e.g. a `scripts/` CLI or a function) and document it in
-  [_forge/tools/](_forge/tools/) — do not rely on re-deriving it through ad-hoc steps.
+  [_forge/tools/](tools/) — do not rely on re-deriving it through ad-hoc steps.
 - Reuse existing knowledge: consult [skills/](../../skills/) (USAGE — domain concept→function map) and
-  [_forge/memory/](_forge/memory/) before re-researching from scratch.
+  [_forge/memory/](memory/) before re-researching from scratch.
 
 ## D5. Version control — the owner owns commits (MANDATORY)
 
@@ -108,7 +108,7 @@ task and how far along is it"; the working tree alone is not.
 The lifecycle (each step is mandatory, in order):
 
 1. **Describe + plan, then save *first*.** Before writing code, record the task in
-   [`_forge/TASKS.md`](../../_forge/TASKS.md): a stable id/title, the **goal**
+   [`_forge/TASKS.md`](TASKS.md): a stable id/title, the **goal**
    (what done means), the **plan** (ordered steps/increments), and the **acceptance check**
    (the command/test/observation that proves it). Save this before starting — an
    interruption after step 1 must still leave a resumable record.
@@ -127,5 +127,5 @@ The lifecycle (each step is mandatory, in order):
 This rule **unifies** the existing mechanisms — it does not add a parallel tracker: the
 record lives in `TASKS.md`, verification of math/architecture lives in the **D2 ledger**
 (`4VERIFY`), and commits remain governed by **D5**. The concrete record template and the
-step-by-step procedure are the [`track-task`](../../_forge/skills/track-task.md) skill;
+step-by-step procedure are the [`track-task`](skills/track-task.md) skill;
 follow it rather than re-inventing a format.

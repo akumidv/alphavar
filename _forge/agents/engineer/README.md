@@ -14,8 +14,8 @@ This charter adds **only alphavar specifics**; it does not restate the role.
 - **Build tools (reuse, don't re-script):** [`../../tools/`](../../tools/) —
   `exchange_fixtures` (record/trim hermetic exchange fixtures), `data_migration`
   (verify + fix stored data). Local skills: [`../../skills/`](../../skills/).
-- **Process rules:** D# in [`docs/dev/DEVELOPMENT_REQUIREMENTS.md`](../../../docs/dev/DEVELOPMENT_REQUIREMENTS.md);
-  verification in [`docs/dev/D2_VERIFICATION.md`](../../../docs/dev/D2_VERIFICATION.md).
+- **Process rules:** D# in [`_forge/DEVELOPMENT_REQUIREMENTS.md`](../../DEVELOPMENT_REQUIREMENTS.md);
+  verification in [`_forge/D2_VERIFICATION.md`](../../D2_VERIFICATION.md).
 
 ## Profiles in effect
 

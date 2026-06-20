@@ -17,6 +17,6 @@ version commented (marked the same) so the owner can compare, and mark the task 
 owner verification" (not "Done"). When in doubt, present options and ask rather than
 silently implement.
 
-Codified as **D2** in `docs/dev/DEVELOPMENT_REQUIREMENTS.md` (architectural invariants
+Codified as **D2** in `_forge/DEVELOPMENT_REQUIREMENTS.md` (architectural invariants
 themselves are in `ARCHITECTURE_REQUIREMENTS.md` R0…R8). Example applied: the
 `_calc_premium_profile` payoff math (T14b). See [env-and-test-running.md](env-and-test-running.md).

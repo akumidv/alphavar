@@ -22,13 +22,20 @@ follows the **keystone** standard — model and notation in
   `exchange_fixtures` (recorder), `data_migration` (verify + fix stored data).
 - [`memory/`](memory/) — **SHARED project memory** (in git): durable notes on how we build
   this project. **Read at session start.**
+- [`design/`](design/) — in-progress **design concepts** (architect role): living concept,
+  rejected branches, design backlog. Folded into an ADR once locked.
 - [`TASKS.md`](TASKS.md) — the single backlog / TODO cycle / learn-loop sink.
+- [`DEVELOPMENT_REQUIREMENTS.md`](DEVELOPMENT_REQUIREMENTS.md) (**D#**) + the
+  [`D2_VERIFICATION.md`](D2_VERIFICATION.md) ledger — the **development process** (how we
+  build), kept here in the dev layer; the project's *architecture* (R#, ADRs, overview)
+  stays in [`../docs/dev/`](../docs/dev/) (what a new developer reads to understand the
+  project).
 
 ## Bound by
 
-- **R#** — [`ARCHITECTURE_REQUIREMENTS.md`](../docs/dev/ARCHITECTURE_REQUIREMENTS.md)
-  (layering, provider pattern, domain model, column dictionary).
-- **D#** — [`DEVELOPMENT_REQUIREMENTS.md`](../docs/dev/DEVELOPMENT_REQUIREMENTS.md)
+- **R#** — [`../docs/dev/ARCHITECTURE_REQUIREMENTS.md`](../docs/dev/ARCHITECTURE_REQUIREMENTS.md)
+  (layering, provider pattern, domain model, column dictionary) — stays in `docs/dev/`.
+- **D#** — [`DEVELOPMENT_REQUIREMENTS.md`](DEVELOPMENT_REQUIREMENTS.md)
   (day-to-day process; **D2** owner-verify, **D5** owner-owns-commits are always-on).
 - Language [`guardrails/`](keystone/guardrails/) (python) + the opted-in
   [`quant`](keystone/profiles/quant.md) profile.

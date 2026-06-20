@@ -1,7 +1,7 @@
 # Skill: track-task (durable, resumable task records)
 
 **Knowledge skill** (no dedicated tool). The concrete procedure + record template behind
-[**D6**](../../docs/dev/DEVELOPMENT_REQUIREMENTS.md). Goal: any non-trivial task leaves a
+[**D6**](../DEVELOPMENT_REQUIREMENTS.md). Goal: any non-trivial task leaves a
 record that survives interruption, so a *different* session / machine / agent can resume it
 and judge its progress **independently** — from the record alone, not by re-reading the diff.
 
@@ -13,8 +13,8 @@ migration. Skip it only for trivial one-liners. If unsure, write the record — 
 ## Where
 
 One home: [`_forge/TASKS.md`](../TASKS.md). Do **not** start a second tracker. Math /
-DataFrame / architecture verification lives in the [D2 ledger](../../docs/dev/D2_VERIFICATION.md)
-(`4VERIFY`); commits stay under [D5](../../docs/dev/DEVELOPMENT_REQUIREMENTS.md). This skill
+DataFrame / architecture verification lives in the [D2 ledger](../D2_VERIFICATION.md)
+(`4VERIFY`); commits stay under [D5](../DEVELOPMENT_REQUIREMENTS.md). This skill
 only governs the *task record*; it points at those, never duplicates them.
 
 ## Procedure

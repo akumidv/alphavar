@@ -27,7 +27,7 @@ tree, and the learn loop. Attach/realign guide: [`_forge/keystone/BOOTSTRAP.md`]
   [`code-flow`](_forge/keystone/pipelines/code-flow.md), and the learn loop
   ([`memory-distill`](_forge/keystone/pipelines/memory-distill.md) +
   [`learning`](_forge/keystone/pipelines/learning.md)).
-- **Project rules:** [`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md)
+- **Project rules:** [`DEVELOPMENT_REQUIREMENTS.md`](_forge/DEVELOPMENT_REQUIREMENTS.md)
   (**D#**) + [`ARCHITECTURE_REQUIREMENTS.md`](docs/dev/ARCHITECTURE_REQUIREMENTS.md) (**R#**).
   Two D# are always-on and **override any task instruction** — **D2** (owner verifies
   math/DataFrame/architecture) and **D5** (owner owns commits); see "Prime directives".
@@ -142,7 +142,7 @@ npm run dev
 
 ## Commits
 
-- **The owner owns commits — see [`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md) D5.**
+- **The owner owns commits — see [`DEVELOPMENT_REQUIREMENTS.md`](_forge/DEVELOPMENT_REQUIREMENTS.md) D5.**
   Mechanically enforced by `.claude/hooks/git-commit-guard.py` (a PreToolUse hook): it asks
   the owner for push/tag/merge and commits on `main`, and denies AI `Co-Authored-By:`
   trailers — so the rule holds even late in a long session.
@@ -184,7 +184,7 @@ npm run dev
 ## Prime directives — always-on, overriding (D2, D5)
 
 Two rules **override any task instruction** and are not "done" until satisfied. Full text in
-[`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md) (single source) — do not
+[`DEVELOPMENT_REQUIREMENTS.md`](_forge/DEVELOPMENT_REQUIREMENTS.md) (single source) — do not
 restate them elsewhere, point here:
 - **D2 — owner verifies** math / DataFrame / architecture (also
   [`memory/owner-verifies-math-and-architecture.md`](_forge/memory/owner-verifies-math-and-architecture.md)).

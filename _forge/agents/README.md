@@ -24,7 +24,7 @@ specifics — which modules, docs, tests, and profiles it works with.
   (pricing, smiles, risk).
 - **Single backlog:** [`../TASKS.md`](../TASKS.md). Project requirements: R# in
   [`docs/dev/ARCHITECTURE_REQUIREMENTS.md`](../../docs/dev/ARCHITECTURE_REQUIREMENTS.md),
-  D# in [`docs/dev/DEVELOPMENT_REQUIREMENTS.md`](../../docs/dev/DEVELOPMENT_REQUIREMENTS.md).
+  D# in [`docs/dev/DEVELOPMENT_REQUIREMENTS.md`](../DEVELOPMENT_REQUIREMENTS.md).
 
 ## Adding an agent
 

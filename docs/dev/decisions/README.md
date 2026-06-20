@@ -2,7 +2,7 @@
 
 Short, dated records of **accepted architectural decisions** and the reasoning behind
 them. They complement the requirement docs (`../ARCHITECTURE_REQUIREMENTS.md` R#,
-`../DEVELOPMENT_REQUIREMENTS.md` D#): the R#/D# rules say *what the invariant is*; an ADR
+`../../../_forge/DEVELOPMENT_REQUIREMENTS.md` D#): the R#/D# rules say *what the invariant is*; an ADR
 records *a decision to act* (a migration, a retirement, a phased rollout) and why, so the
 choice isn't re-litigated later.
 

@@ -2,8 +2,8 @@
 
 > Active and planned work. **Completed** refactoring/remediation is archived in
 > [TASKS_ARCHIVE.md](TASKS_ARCHIVE.md). Architecture/domain constraints:
-> [ARCHITECTURE_REQUIREMENTS.md](../../docs/dev/ARCHITECTURE_REQUIREMENTS.md) (R0…R8).
-> Dev rules: [DEVELOPMENT_REQUIREMENTS.md](../../docs/dev/DEVELOPMENT_REQUIREMENTS.md)
+> [ARCHITECTURE_REQUIREMENTS.md](../docs/dev/ARCHITECTURE_REQUIREMENTS.md) (R0…R8).
+> Dev rules: [DEVELOPMENT_REQUIREMENTS.md](DEVELOPMENT_REQUIREMENTS.md)
 > (D1…D6). Verification for every task: `pytest` + `ruff` green, plus **D2 owner
 > verification** for any math/DataFrame/architecture change.
 
@@ -12,12 +12,12 @@
 Suite **394 passed, 1 skipped, 1 xfailed / ruff clean**. The 2026-06-13 review backlog
 (P0/P1, Blocks A/B/C, R0, T19–T24, T21 pricer/smile/validation, T22) is **complete and
 archived** → [TASKS_ARCHIVE.md](TASKS_ARCHIVE.md). Every committed math/DataFrame/architecture
-change is **not "Done" until owner-verified** — see the [D2 ledger](../../docs/dev/D2_VERIFICATION.md).
+change is **not "Done" until owner-verified** — see the [D2 ledger](D2_VERIFICATION.md).
 
 **In flight:**
 - **T27 `forecast`** — iterations 1 (price) + 2 (vol) + 3 (smile) + 4 (surface, + smile maturity B)
   + **5 (price: endogenous/model-free)** **code-complete, D2-pending**. Remaining: it.5 **factor-
-  conditional** `factor_linear`/`var` (deferred — need the [ADR 0003](../../docs/dev/decisions/0003-composable-result-chain.md)
+  conditional** `factor_linear`/`var` (deferred — need the [ADR 0003](../docs/dev/decisions/0003-composable-result-chain.md)
   exogenous-factor input contract) and it.6 (historical-analogue model).
 - **T28** — unify the provider ↔ exchange normalization path (planned; needs an ADR).
 
@@ -89,7 +89,7 @@ exposes `model='ar1'|'empirical'`, `engine='bootstrap'`, `source='front'`. **pyt
   (returns regressed on external factors: rates, futures-spot basis, realized vol, macro) + `var`
   (vector-autoregression over (price, rates, …) jointly) — each needs the factor series **and** a
   horizon factor scenario (assumed or itself a forecast → composable). **Deferred behind the
-  composable result-chain ([ADR 0003](../../docs/dev/decisions/0003-composable-result-chain.md))**,
+  composable result-chain ([ADR 0003](../docs/dev/decisions/0003-composable-result-chain.md))**,
   which is their input contract; they still raise `NotImplementedError` via the factory.
 - **Historical-analogue / pattern-matching model (new, it.6 — applies to price/vol/smile/surface):**
   forecast by **searching history for a market situation similar to the present** (by the vol level,
@@ -143,7 +143,7 @@ exposes both the level `S_{t+h}` and the change `ΔS = S_{t+h} − S₀` (`.chan
   - [x] `empirical` — historical/bootstrap return distribution (pairs with `bootstrap`); it.5.
 - *exogenous / factor-conditional* (price driven by external factors — rates, futures-spot basis,
   realized vol, macro) — **planned**; needs the factor series in **and** a factor scenario at the
-  horizon (assumed, or itself a forecast → composable). **Deferred behind [ADR 0003](../../docs/dev/decisions/0003-composable-result-chain.md)**
+  horizon (assumed, or itself a forecast → composable). **Deferred behind [ADR 0003](../docs/dev/decisions/0003-composable-result-chain.md)**
   (the composable result-chain = their input contract). `rate` is a *pricing* input today
   (Black-76), distinct from a forecast driver.
   - [ ] `factor_linear` — regression of returns on exogenous factors (incl. rates).
@@ -209,7 +209,7 @@ window / # neighbours owner-scoped before build.
 - [x] 5. Tests `tests/unit/options/lib/forecast/` (21, green).
 **Acceptance check:** `uv run pytest -q tests/unit/options/lib/forecast_test` green +
 `uv run ruff check src tests` clean; analytic vs MC gbm quantiles agree within MC error.
-**Notes:** Architecture decision durably recorded in **[ADR 0002](../../docs/dev/decisions/0002-forecast-model-factory-axes.md)**
+**Notes:** Architecture decision durably recorded in **[ADR 0002](../docs/dev/decisions/0002-forecast-model-factory-axes.md)**
 (target × process × engine axes) + R3 model-factory pattern + PROJECT_OVERVIEW §12. R3 (facade) +
 R5 (pure lib) — mirrors the `lib/pricer/smile/` factory. Math (GBM/GARCH
 estimators, multi-step variance, lognormal quantiles, `norm_ppf`) is **D2 owner-verify** — add

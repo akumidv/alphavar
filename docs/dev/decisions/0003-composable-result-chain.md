@@ -7,7 +7,7 @@
   (forecast — factor-conditional price models), T29/T30 (fitting), T33 (portfolio), T35 (risk).
   Generalizes ADR 0002 (the forecast factory is one *producer* in this chain).
 
-> **Design evolution (2026-06-20, in progress — see [`design/result-chain/`](../design/result-chain/README.md)).**
+> **Design evolution (2026-06-20, in progress — see [`design/result-chain/`](../../../_forge/design/result-chain/README.md)).**
 > Active co-design widened this ADR's Phase 1 from "pin the existing `to_frame()` schemas" into a full
 > pipeline contract. Firmed up so far (not yet folded into the Decision below — the concept folder is
 > the live source until locked):

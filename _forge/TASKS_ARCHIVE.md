@@ -3,7 +3,7 @@
 > Closed and code-complete work from the 2026-06-13 architecture/security review and the
 > R0–T26 refactoring. **Reference only** — active and planned work lives in
 > [TASKS.md](TASKS.md). Items tagged *D2-pending* are code-complete but awaiting owner
-> sign-off in the [D2 ledger](../../docs/dev/D2_VERIFICATION.md); the ledger remains the
+> sign-off in the [D2 ledger](D2_VERIFICATION.md); the ledger remains the
 > source of truth for that backlog.
 
 ## Closed (archive)
@@ -60,7 +60,7 @@ singular wire token (`option`/`future`), decoupled from `InstrumentKind` (R2.2).
 **Pinned** by `instrument_kind_mapping_test::test_deribit_asset_kind_values_are_venue_native`.
 **MOEX audit done (2026-06-18): clean** — MOEX sends `MoexAssetType.value` (venue-native) on
 the wire; project enums are used only to normalize responses. Tracked in the
-[D2 ledger](../../docs/dev/D2_VERIFICATION.md); awaiting owner sign-off.
+[D2 ledger](D2_VERIFICATION.md); awaiting owner sign-off.
 
 ### T15. Add CI
 **Done (2026-06-17):** `.github/workflows/ci.yml` runs on PR + push to `main`:

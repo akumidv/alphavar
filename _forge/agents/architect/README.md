@@ -14,7 +14,7 @@ This charter adds **only alphavar specifics**; it does not restate the role.
   - `src/alphavar/core/` — dictionary, migration, shared primitives.
   - `src/alphavar/io/` — exchange sources + the provider pattern.
   - `src/alphavar/options/` — the options domain (etl, pricer, smiles, normalization).
-- **Verification policy:** [`docs/dev/D2_VERIFICATION.md`](../../../docs/dev/D2_VERIFICATION.md)
+- **Verification policy:** [`_forge/D2_VERIFICATION.md`](../../D2_VERIFICATION.md)
   — math/DataFrame/architecture decisions need explicit owner verification.
 
 ## Profiles in effect
