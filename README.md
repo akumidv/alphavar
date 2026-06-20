@@ -35,18 +35,12 @@ ecosystem includes the [`catcher-bot`](https://github.com/akumidv/catcher-bot) t
 so together they cover both **analysis and trading**. As domains mature, general entities
 (e.g. `options`) are expected to graduate into git submodules.
 
-The ecosystem is **built and operated through AI agents** (locally now, server-side later),
-split into two classes:
-
-- a **build agent** — develops this codebase;
-- **operate ("desk") agents** — use the library + bot on the market: options/history
-  analysis, investment analysis, strategy backtesting, fundamental analysis for equity/bond
-  forecasts, and trading — coordinated by an orchestrator.
-
-Agents share one domain knowledge base (destined for an **MCP** server) and improve the
-system via a learn loop routed through the build agent. How to work in either mode is in
-[AGENTS.md](AGENTS.md); the full agent operating model is in
-[agents/README.md](agents/README.md).
+AI assistance follows the **keystone** standard ([`_forge/keystone/`](_forge/keystone/), a
+cross-project submodule, destined for an **MCP** server). It separates **developing** the
+project (the `_forge/` dev layer — `architect` + `engineer` agents, bound by R#/D#) from
+**using** it (the root [`skills/`](skills/) USAGE layer — how an assistant applies
+alphavar's public API). The vendor-neutral entry point is [AGENTS.md](AGENTS.md); the model
+is in [`_forge/keystone/README.md`](_forge/keystone/README.md).
 
 ## Quick start
 
@@ -103,31 +97,23 @@ Architecture, design decisions, and development notes live in
 
 ## For AI agents
 
-This project is **built and operated through AI agents**, and the repo supports two usage
-models:
+The repo supports two usage models:
 
 - **As a library** — import `alphavar` and drive the `Option` facade yourself (see *Quick
   start* and the demo notebooks).
-- **Through agents** — let an assistant operate the ecosystem. The canonical, vendor-neutral
-  entry point is [AGENTS.md](AGENTS.md) ([CLAUDE.md](CLAUDE.md) points to it); the full
-  operating model (skills, tools, knowledge, guardrails, learn loop) is in
-  [agents/README.md](agents/README.md).
+- **Through an assistant** — the vendor-neutral entry point is [AGENTS.md](AGENTS.md)
+  ([CLAUDE.md](CLAUDE.md) points to it); the full model is in
+  [`_forge/keystone/README.md`](_forge/keystone/README.md).
 
-Agents are split by **what they act on**, and a session runs in one of two **modes** —
-switch by a plain-text signal, **DESK is the default**:
+AI assistance follows the **keystone** standard, which separates two concerns:
 
-- **DEV / BUILD** → [`agents/_dev/`](agents/_dev/) — the build agent: develops this codebase
-  (bound by the R#/D# requirements).
-- **DESK (operate)** → [`agents/desk/`](agents/desk/) — agents that work the market/data,
-  bound by runtime guardrails (**G#** — e.g. read-only by default; only the trader may place
-  orders, gated):
-  - **options-analyst** — mispricing / IV-surface scan *(seeded)*;
-  - **investment-analyst** — cross-asset allocation views *(planned)*;
-  - **strategy-tester** — backtest strategies *(planned)*;
-  - **fundamental-analyst** — company fundamentals → equity/bond forecast *(planned)*;
-  - **trader** — places orders via `catcher-bot` *(planned)*;
-  - **orchestrator** — routes work, enforces separation of duties, consolidates results
-    *(planned)*.
+- **Developing the project** → the [`_forge/`](_forge/) dev layer: the
+  [`architect`](_forge/agents/architect/README.md) (design/docs/ADRs) and
+  [`engineer`](_forge/agents/engineer/README.md) (code/tests) agents, bound by the R#/D#
+  requirements. Shared, cross-project rules live in the
+  [`keystone/`](_forge/keystone/) submodule.
+- **Using the project** → the root [`skills/`](skills/) USAGE layer: how an assistant
+  applies alphavar's public API to a user's task, as a domain-concept → function map.
 
-Domain knowledge is shared across agents ([`agents/shared/`](agents/shared/), → MCP); desk
-findings become code/skills/tools through the build agent (the learn loop).
+Knowledge promoted out of a project flows up into keystone (the learn loop), so the shared
+standard improves through use.

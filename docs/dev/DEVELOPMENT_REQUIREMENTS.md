@@ -59,7 +59,7 @@ This is a hard, always-on rule — it overrides "make the tests pass":
 - `DATA_PATH` is read from `test.env`; test artefacts (charts, dumps) go to the
   git-ignored `.tmp/` via the `tmp_output_dir` fixture.
 - Details and other operational gotchas:
-  [agents/_dev/memory/env-and-test-running.md](agents/_dev/memory/env-and-test-running.md).
+  [_forge/memory/env-and-test-running.md](_forge/memory/env-and-test-running.md).
 
 ## D4. Token efficiency — prefer tools implemented as code
 
@@ -76,9 +76,9 @@ as a real constraint, not an afterthought.
   path, not the contents).
 - When adding a capability an assistant will reuse, package it as code under the project
   (e.g. a `scripts/` CLI or a function) and document it in
-  [agents/_dev/tools/](agents/_dev/tools/) — do not rely on re-deriving it through ad-hoc steps.
-- Reuse existing knowledge: consult [agents/shared/knowledge/](agents/shared/knowledge/) and
-  [agents/_dev/memory/](agents/_dev/memory/) before re-researching from scratch.
+  [_forge/tools/](_forge/tools/) — do not rely on re-deriving it through ad-hoc steps.
+- Reuse existing knowledge: consult [skills/](../../skills/) (USAGE — domain concept→function map) and
+  [_forge/memory/](_forge/memory/) before re-researching from scratch.
 
 ## D5. Version control — the owner owns commits (MANDATORY)
 
@@ -97,3 +97,35 @@ A hard, always-on rule. Like D2, it **overrides** any task or generic instructio
 - When unsure whether a commit is "backup" or "landing", treat it as landing → leave it
   uncommitted and ask. Branch before committing if on the default branch (never commit to
   `main` directly).
+
+## D6. Durable task records — describe, save, do, verify, compact
+
+Every non-trivial task carries a **written record that survives interruption**, so work can
+be resumed and its progress judged **independently** — in a new session, on another machine,
+or by a different agent (human or AI). The record is the source of truth for "what is this
+task and how far along is it"; the working tree alone is not.
+
+The lifecycle (each step is mandatory, in order):
+
+1. **Describe + plan, then save *first*.** Before writing code, record the task in
+   [`_forge/TASKS.md`](../../_forge/TASKS.md): a stable id/title, the **goal**
+   (what done means), the **plan** (ordered steps/increments), and the **acceptance check**
+   (the command/test/observation that proves it). Save this before starting — an
+   interruption after step 1 must still leave a resumable record.
+2. **Do**, keeping the record current. Mark the task *in progress* and note which
+   increment is active. A reader must always be able to tell, from the record alone, what is
+   done vs. pending — never let the record drift behind the code.
+3. **Verify against the saved task.** When an increment/task is finished, check it against
+   the **acceptance check recorded in step 1** (not against a fresh, convenient definition).
+   Math / DataFrame / architecture work is *not* done here — it goes to **D2** (`4VERIFY` +
+   the [ledger](D2_VERIFICATION.md)) and stays *pending owner verification*.
+4. **Mark done and compact.** On completion, replace the verbose initial/intermediate
+   narrative with a **compact final entry**: outcome, where the code/tests live, and
+   pointers (D2 ledger row, ADRs, R#/D#). Keep exactly enough that progress stays
+   independently assessable; move long historical detail to git history of the file.
+
+This rule **unifies** the existing mechanisms — it does not add a parallel tracker: the
+record lives in `TASKS.md`, verification of math/architecture lives in the **D2 ledger**
+(`4VERIFY`), and commits remain governed by **D5**. The concrete record template and the
+step-by-step procedure are the [`track-task`](../../_forge/skills/track-task.md) skill;
+follow it rather than re-inventing a format.

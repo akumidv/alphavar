@@ -39,15 +39,3 @@ class AssetClass(enum.StrEnum):
     INDEX = "index"
     CURRENCY = "currency"
     CRYPTO = "crypto"
-
-
-@enum.unique
-class ContractKind(enum.StrEnum):
-    """Contract/product kind (column ``contract_kind``): same asset class, different
-    product or trading. Deribit ``future_combo``/``option_combo`` map to ``COMBO``.
-    """
-
-    VANILLA = "vanilla"
-    COMBO = "combo"
-    CSO = "cso"  # calendar spread option
-    STIR = "stir"  # short-term interest rate

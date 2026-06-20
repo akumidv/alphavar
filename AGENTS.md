@@ -3,24 +3,35 @@
 Guidance for AI coding agents (Claude Code, GitHub Copilot, Codex, etc.) working in this
 repository. `CLAUDE.md` points here — this is the single source of truth for agents.
 
-## Operating mode — read first
+## Dev layer — keystone (developing the project)
 
-This repo hosts an **agent ecosystem** (alpha extraction from markets), so a session runs in
-one of two modes. **Default = DESK (operate).**
+This project's AI-assist model is the **keystone** standard. Model & notation:
+[`_forge/keystone/README.md`](_forge/keystone/README.md) — three axes (**Layer**
+SHARED/LOCAL/USAGE · **Role** architect/engineer · **Project type**), the layer decision
+tree, and the learn loop. Attach/realign guide: [`_forge/keystone/BOOTSTRAP.md`](_forge/keystone/BOOTSTRAP.md).
 
-| Mode | You are | Rules | Home |
-|---|---|---|---|
-| **DESK** (default) | operating on the market/data — analysis, backtest, trading | **G#** + R# | [`agents/desk/`](agents/desk/) |
-| **DEV / BUILD** | building the alphavar codebase | **R# + D#** | [`agents/_dev/`](agents/_dev/) |
-
-- **Dev-mode rules — read before acting:** [`docs/dev/DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md)
-  (**D#**). Two are always-on and **override any task instruction** — **D2** (owner verifies
-  math/DataFrame/architecture) and **D5** (owner owns commits); see "Prime directives" below.
-- **Switch by plain text:** `dev` / `build` → DEV; `desk` / `operate` → DESK. Vendor
-  sub-agent files (`.claude/agents/…`) are optional sugar that only reference these charters.
-- **Session-start banner:** your **first message** states the active mode and how to switch,
-  e.g. *"🟢 Mode: DESK (operate) — read-only by default (G5). Say `dev` to build code."*
-- Full model, entity theses, and the learn loop: [`agents/README.md`](agents/README.md).
+- **Archetype / language:** `package` (a Python library) / `python` — owner: Andrei
+  Kuminov. Rules: [`ARCHETYPES.md`](_forge/keystone/ARCHETYPES.md).
+- **Layers:** SHARED = [`_forge/keystone/`](_forge/keystone/) (submodule `ai_keystone`) ·
+  LOCAL = [`_forge/`](_forge/) `{agents,skills,tools,memory}` + [`TASKS.md`](_forge/TASKS.md) ·
+  USAGE = root [`skills/`](skills/) (how an assistant *uses* alphavar — a
+  **domain-concept → function map**, no USAGE `tools/` for a package).
+- **Agents (roles):** [`architect`](_forge/agents/architect/README.md) (design/docs/ADRs) ·
+  [`engineer`](_forge/agents/engineer/README.md) (code/tests) → role definitions in
+  [`_forge/keystone/roles/`](_forge/keystone/roles/).
+- **Guardrails (by language):** [`_common`](_forge/keystone/guardrails/_common.md) +
+  [`python`](_forge/keystone/guardrails/python.md). **Profile (opted in):**
+  [`quant`](_forge/keystone/profiles/quant.md) (numerics).
+- **Pipelines:** [`pre-commit`](_forge/keystone/pipelines/pre-commit.md) (tests mandatory),
+  [`design-flow`](_forge/keystone/pipelines/design-flow.md),
+  [`code-flow`](_forge/keystone/pipelines/code-flow.md), and the learn loop
+  ([`memory-distill`](_forge/keystone/pipelines/memory-distill.md) +
+  [`learning`](_forge/keystone/pipelines/learning.md)).
+- **Project rules:** [`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md)
+  (**D#**) + [`ARCHITECTURE_REQUIREMENTS.md`](docs/dev/ARCHITECTURE_REQUIREMENTS.md) (**R#**).
+  Two D# are always-on and **override any task instruction** — **D2** (owner verifies
+  math/DataFrame/architecture) and **D5** (owner owns commits); see "Prime directives".
+- **Secrets:** from `.env` (gitignored). Never in code/docs/commits.
 
 ## Project Overview
 
@@ -148,36 +159,27 @@ npm run dev
   (`ARCHITECTURE_REQUIREMENTS.md`, **R0…R8** — verify on new entities/domain or serious
   domain-model changes), day-to-day dev rules (`DEVELOPMENT_REQUIREMENTS.md`, **D1…D5** —
   check every change; **D2** and **D5** are always-on and overriding), design overview
-  (`PROJECT_OVERVIEW.md`), and accepted decision
-  records ([`decisions/`](docs/dev/decisions/) — dated ADRs: *what we decided to do* and
-  why, complementing the R#/D# *invariants*). The third requirement axis, runtime **desk
-  guardrails G#**, lives with the agents in
-  [`agents/desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md).
-- [`agents/README.md`](agents/README.md) — the **agent operating system**: the two agent
-  classes, modes, entity theses, and the learn loop.
-- `agents/` (repo root, **not** under `docs/` — these are agent artifacts, not project
-  documentation; follows the Agent Skills convention). Each folder's index is its
-  `README.md`. Split by what the agent acts on:
-  - [`_dev/`](agents/_dev/) — the **build** agent (underscore = private/special): code,
-    tests, refactors. Holds `skills/ tools/ memory/` and [`TASKS.md`](agents/_dev/TASKS.md);
-    bound by R# + D#. Its **tools = code** (docstring is the doc; run
-    `python -m agents._dev.tools.<tool>`; a `.md` spec only for MCP/external), **skills =
-    know-how** (when/why/order, tool-driven or pure procedure). **Read `_dev/memory/` at
-    session start in dev mode.**
-  - [`desk/`](agents/desk/) — the **operate** agents (default mode): analysis, backtesting,
-    trading via catcher-bot. One folder per agent (charter + pipeline + `skills/ tools/
-    memory/`), bound by [`desk/GUARDRAILS.md`](agents/desk/GUARDRAILS.md) (**G#**).
-  - [`shared/`](agents/shared/) — substrate for both classes: `knowledge/` (sourced domain
-    reference) now, shared skills/tools later → MCP. **Consult before re-researching.**
-- [`agents/_dev/TASKS.md`](agents/_dev/TASKS.md) — remediation backlog / TODO cycle (the dev
-  agent's queue; sink of the desk learn loop).
-- [`tools/`](tools/) (repo root) — **console tools the owner runs by hand** (and an agent
-  may run the same command), in dev **or** desk: data sync, data migration, operational
-  maintenance. That "a person runs it from a console" criterion is what puts a tool here.
-  Agent-mode-internal tooling does **not** live here — it stays with its agent:
-  `agents/_dev/tools/` for build; `agents/desk/tools/` for tools shared across desk agents,
-  `agents/desk/<agent>/tools/` for one specific desk agent. See
-  [`tools/README.md`](tools/README.md).
+  (`PROJECT_OVERVIEW.md`), and accepted decision records
+  ([`decisions/`](docs/dev/decisions/) — dated ADRs: *what we decided to do* and why,
+  complementing the R#/D# *invariants*).
+- `_forge/` (repo root, **not** under `docs/` — these are agent artifacts; follows the
+  Agent Skills convention). Each folder's index is its `README.md`. This is the **dev
+  layer** (see "Dev layer — keystone" above):
+  - [`keystone/`](_forge/keystone/) — the **SHARED** cross-project standard (submodule
+    `ai_keystone`): the model, roles, guardrails, profiles, pipelines.
+  - [`agents/`](_forge/agents/) — this project's **agents** (`architect`, `engineer`),
+    each inheriting a keystone role + alphavar specifics.
+  - `_forge/{skills,tools,memory}` — **LOCAL** dev assets. Tools = code (docstring is the
+    doc; run `python -m _forge.tools.<tool>`); skills = know-how (when/why/order).
+    [`TASKS.md`](_forge/TASKS.md) is the single backlog / TODO cycle / learn-loop sink.
+    **Read `_forge/memory/` at session start.**
+- [`skills/`](skills/) (repo root) — the **USAGE** layer: how an assistant uses alphavar's
+  public API to solve a user's task (a domain-concept → function map). Built to travel into
+  a downstream consumer.
+- [`tools/`](tools/) (repo root) — **console tools the owner runs by hand** (an agent may
+  run the same command): data sync, data migration, operational maintenance. The "a person
+  runs it from a console" criterion is what puts a tool here; dev-internal tooling stays in
+  `_forge/tools/`. See [`tools/README.md`](tools/README.md).
 
 ## Prime directives — always-on, overriding (D2, D5)
 
@@ -185,9 +187,9 @@ Two rules **override any task instruction** and are not "done" until satisfied. 
 [`DEVELOPMENT_REQUIREMENTS.md`](docs/dev/DEVELOPMENT_REQUIREMENTS.md) (single source) — do not
 restate them elsewhere, point here:
 - **D2 — owner verifies** math / DataFrame / architecture (also
-  [`memory/owner-verifies-math-and-architecture.md`](agents/_dev/memory/owner-verifies-math-and-architecture.md)).
+  [`memory/owner-verifies-math-and-architecture.md`](_forge/memory/owner-verifies-math-and-architecture.md)).
 - **D5 — owner owns commits** (also
-  [`memory/owner-owns-commits.md`](agents/_dev/memory/owner-owns-commits.md); enforced by the
+  [`memory/owner-owns-commits.md`](_forge/memory/owner-owns-commits.md); enforced by the
   `git-commit-guard` hook).
 
 All project files are written in English.

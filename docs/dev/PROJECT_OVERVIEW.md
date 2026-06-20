@@ -42,7 +42,7 @@ server-side later), split into two classes:
 Agents share a domain knowledge base (destined for MCP) and improve the system via a learn
 loop routed through the build agent. Full model:
 [`../../agents/README.md`](../../agents/README.md); guardrails:
-[`../../agents/desk/GUARDRAILS.md`](../../agents/desk/GUARDRAILS.md).
+[`../../agents/GUARDRAILS.md`](../../agents/GUARDRAILS.md).
 
 ---
 

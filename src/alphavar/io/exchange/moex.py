@@ -11,12 +11,20 @@ from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 from pydantic import validate_call
 
-from alphavar.core.dictionary import ContractKind, InstrumentKind
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.io.exchange._abstract_exchange import AbstractExchange, APIException, RequestClass
 from alphavar.io.exchange.cache import Cache
 from alphavar.io.exchange.exchange_entities import ExchangeCode
 from alphavar.io.provider import DataEngine, RequestParameters
-from alphavar.options.dictionary import AssetType, Currency, OptionsStyle, OptionsTerm, OptionsType, Timeframe
+from alphavar.options.dictionary import (
+    AssetType,
+    ContractKind,
+    Currency,
+    OptionsStyle,
+    OptionsTerm,
+    OptionsType,
+    Timeframe,
+)
 from alphavar.options.dictionary.enum_code import EnumCode
 from alphavar.options.lib.normalization import (
     fill_option_price,

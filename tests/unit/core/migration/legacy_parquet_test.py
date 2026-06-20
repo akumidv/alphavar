@@ -2,17 +2,18 @@ import pandas as pd
 
 from alphavar.core.migration import migrate_dataframe
 
+# Core's neutral spec covers only domain-shared concepts (identity / kind / price / time).
+# The derivatives renames (option_type, exchange_iv, the underlying link) live with the options
+# domain — see tests/unit/options/migration/legacy_columns_test.py.
+
 
 def _legacy_df():
     return pd.DataFrame(
         {
             "symbol": ["BTC", "BTC"],
             "exchange_symbol": ["BTC-10APR25-66000-C", "BTC-10APR25-66000-P"],
-            "exchange_underlying_symbol": ["SYN.BTC-10APR25", "SYN.BTC-10APR25"],
             "kind": ["o", "o"],
-            "option_type": ["c", "p"],
             "exchange_price": [0.1, 0.2],
-            "exchange_iv": [50.0, 55.0],
             "original_timestamp": pd.to_datetime(["2025-04-10", "2025-04-10"]),
             "source_last": [0.11, 0.21],
             "price": [0.1, 0.2],
@@ -22,32 +23,15 @@ def _legacy_df():
 
 def test_column_renames():
     out = migrate_dataframe(_legacy_df())
-    for old in (
-        "symbol",
-        "exchange_symbol",
-        "kind",
-        "option_type",
-        "exchange_price",
-        "original_timestamp",
-        "source_last",
-    ):
+    for old in ("symbol", "exchange_symbol", "kind", "exchange_price", "original_timestamp", "source_last"):
         assert old not in out.columns, old
-    for new in (
-        "asset_code",
-        "exch_symbol",
-        "instrument_kind",
-        "option_right",
-        "exch_price",
-        "exch_timestamp",
-        "last_raw",
-    ):
+    for new in ("asset_code", "exch_symbol", "instrument_kind", "exch_price", "exch_timestamp", "last_raw"):
         assert new in out.columns, new
 
 
 def test_value_remap_codes_to_readable():
     out = migrate_dataframe(_legacy_df())
     assert sorted(out["instrument_kind"].unique()) == ["option"]
-    assert sorted(out["option_right"].unique()) == ["call", "put"]
 
 
 def test_two_level_identity_split():

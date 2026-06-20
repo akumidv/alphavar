@@ -19,13 +19,13 @@ The same invocation works for the owner and for an agent, in dev and in desk mod
 ## Where a tool belongs
 - **`tools/` (here)** — anything a person would run from a console: data sync, data
   migration, one-off operational maintenance. User-facing **and** agent-facing.
-- **`agents/_dev/tools/`** — internal to the **dev/build** agent (e.g. recording test
-  fixtures); run as `python -m agents._dev.tools.<tool>`. Not part of the operator surface.
-- **`agents/desk/tools/`** — shared across **desk** agents (common to the operate mode);
-  **`agents/desk/<agent>/tools/`** — internal to one specific desk agent.
+- **`_forge/tools/`** — internal to the **dev/build** agent (e.g. recording test
+  fixtures); run as `python -m _forge.tools.<tool>`. Not part of the operator surface.
+- **`agents/tools/`** — shared across **desk** agents (common to the operate mode);
+  **`agents/<agent>/tools/`** — internal to one specific desk agent.
 
 If the owner is expected to run it by hand, it goes here; if it only serves agent-internal
-workflow, it stays with that agent (shared desk tools in `agents/desk/tools/`, otherwise
+workflow, it stays with that agent (shared desk tools in `agents/tools/`, otherwise
 with the single agent that uses it).
 
 ## Index

@@ -43,3 +43,18 @@ class SeriesTenor(enum.StrEnum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
     QUARTERLY = "quarterly"
+
+
+@enum.unique
+class ContractKind(enum.StrEnum):
+    """Contract/product kind (column ``contract_kind``): same asset class, different
+    product or trading. Deribit ``future_combo``/``option_combo`` map to ``COMBO``.
+
+    Derivatives-domain axis (lives with options, not core): a spot row has no contract
+    kind, and any future spot product would define its own values.
+    """
+
+    VANILLA = "vanilla"
+    COMBO = "combo"
+    CSO = "cso"  # calendar spread option
+    STIR = "stir"  # short-term interest rate

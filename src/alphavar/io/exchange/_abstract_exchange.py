@@ -7,9 +7,10 @@ from typing import NamedTuple
 import httpx
 import pandas as pd
 
-from alphavar.core.dictionary import ContractKind, InstrumentKind
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.io.exchange.exchange_exception import APIException, RequestException
 from alphavar.io.provider import AbstractProvider, DataEngine
+from alphavar.options.dictionary import ContractKind
 
 
 class BookData(NamedTuple):

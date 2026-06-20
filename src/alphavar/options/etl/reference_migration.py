@@ -21,9 +21,9 @@ import sys
 import pandas as pd
 
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.core.migration import rename_legacy_columns
 from alphavar.options.dictionary import OptionsTerm
 from alphavar.options.lib.reference import extract_reference, write_reference
+from alphavar.options.migration import rename_legacy_option_columns
 
 # Option kind folder names to scan: the canonical singular (ADR 0001) + the legacy plural,
 # so the meta tool works whether or not the kind-folder rename has run yet.
@@ -43,7 +43,7 @@ def _read_asset_wide(asset_dir: str) -> pd.DataFrame | None:
     files = sorted(set(files))
     if not files:
         return None
-    frames = [rename_legacy_columns(pd.read_parquet(f)) for f in files]
+    frames = [rename_legacy_option_columns(pd.read_parquet(f)) for f in files]
     return pd.concat(frames, ignore_index=True)
 
 

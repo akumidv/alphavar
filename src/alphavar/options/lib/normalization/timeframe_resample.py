@@ -145,12 +145,16 @@ def _resample_by_kind_type_or_exch_symbol(
             f"Resampled dataframe contain more then one exchange symbol {df[OptionsTerm.ASSET_CODE].unique()}"
         )
 
+    # Carry contract values across gaps before bucketing so an all-NaN target bucket inherits the
+    # last known "last" value (LOCF) / the next known "first" value (NOCB), rather than staying
+    # NaN. Runs per leaf group (a single contract), so values never leak across contracts. (T24:
+    # the prior `df[cols]...ffill(inplace=True)` mutated a throwaway column slice — a no-op.)
     forward_fill_columns = [col for col in resample_model if resample_model[col] == "last" and col in df.columns]
-    if len(forward_fill_columns):
-        df[forward_fill_columns].infer_objects(copy=False).ffill(inplace=True)
+    if forward_fill_columns:
+        df[forward_fill_columns] = df[forward_fill_columns].infer_objects(copy=False).ffill()
     back_fill_columns = [col for col in resample_model if resample_model[col] == "first" and col in df.columns]
-    if len(back_fill_columns):
-        df[back_fill_columns].infer_objects(copy=False).bfill(inplace=True)
+    if back_fill_columns:
+        df[back_fill_columns] = df[back_fill_columns].infer_objects(copy=False).bfill()
     df_resample = df.resample(
         rule=timeframe.offset, on=OptionsTerm.TIMESTAMP, closed="left", label="left", group_keys=False
     ).apply(resample_model)

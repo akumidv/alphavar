@@ -7,17 +7,72 @@ TRADE_TYPE can be: option, future, asset (asset - mean tangible assets: currency
 dataframe columns:
 """
 
-import builtins
 import datetime
+import logging
+import os
 
 import pandas as pd
 from pydantic import validate_call
 
 from alphavar.core.dictionary import InstrumentKind
-from alphavar.core.migration import rename_legacy_columns
 from alphavar.io.provider._file_provider import AbstractFileProvider
 from alphavar.io.provider._provider_entities import RequestParameters
-from alphavar.options.dictionary import Timeframe
+from alphavar.options.dictionary import OptionsTerm, Timeframe
+from alphavar.options.migration import rename_legacy_option_columns as rename_legacy_columns
+
+logger = logging.getLogger(__name__)
+
+# Owner-agreed period semantics (T19, 4VERIFY — see TASKS T19 / D2 ledger):
+# A request is always an inclusive range; an open bound resolves to the stored data edge.
+#   * ``period_from`` open -> the earliest stored year; set -> that point (inclusive floor).
+#   * ``period_to``   open -> the latest stored year;   set -> that point (inclusive ceiling).
+# So ``period_to`` alone means "everything up to and including it"; ``period_from`` alone means
+# "from it through the latest data"; neither means all stored data.
+# A ``date`` bound covers the whole day; a ``datetime`` bound is the exact instant (rows with
+# ``timestamp <= to`` / ``>= from``). A year file absent inside the resolved span is skipped
+# with a warning.
+
+_Bound = int | datetime.date | datetime.datetime
+
+
+def _bound_year(bound: _Bound) -> int:
+    """Calendar year a from/to bound falls in (``datetime`` is a ``date`` subclass)."""
+    if isinstance(bound, bool):  # bool ⊂ int — never a valid period bound
+        raise TypeError(f"period bound has incorrect type {type(bound)}")
+    if isinstance(bound, int):
+        return bound
+    if isinstance(bound, datetime.date):  # covers datetime.datetime
+        return bound.year
+    raise TypeError(f"period bound has incorrect type {type(bound)}")
+
+
+def _align_ts(series: pd.Series, dt: datetime.datetime) -> pd.Timestamp:
+    """Match a naive/aware ``datetime`` bound to the tz of the stored timestamp column."""
+    ts = pd.Timestamp(dt)
+    col_tz = series.dt.tz
+    if col_tz is not None and ts.tz is None:
+        return ts.tz_localize(col_tz)
+    if col_tz is None and ts.tz is not None:
+        return ts.tz_convert(None)
+    return ts
+
+
+def _filter_lower(df: pd.DataFrame, ts_col: str, bound: _Bound | None) -> pd.DataFrame:
+    """Keep rows at/after ``bound`` (whole-day floor for ``date``, exact for ``datetime``)."""
+    if bound is None or not isinstance(bound, datetime.date):  # None / int year -> no row floor
+        return df
+    if isinstance(bound, datetime.datetime):
+        return df[df[ts_col] >= _align_ts(df[ts_col], bound)]
+    return df[df[ts_col].dt.date >= bound]
+
+
+def _filter_upper(df: pd.DataFrame, ts_col: str, bound: _Bound | None) -> pd.DataFrame:
+    """Keep rows at/before ``bound`` (whole-day ceiling for ``date``, exact for ``datetime``)."""
+    if bound is None or not isinstance(bound, datetime.date):  # None / int year -> no row ceiling
+        return df
+    if isinstance(bound, datetime.datetime):
+        return df[df[ts_col] <= _align_ts(df[ts_col], bound)]
+    return df[df[ts_col].dt.date <= bound]
 
 
 class PandasLocalFileProvider(AbstractFileProvider):
@@ -26,6 +81,21 @@ class PandasLocalFileProvider(AbstractFileProvider):
     def _fn_path_prepare(self, asset_code: str, asset_kind: InstrumentKind, timeframe: Timeframe, year: int):
         return super().fn_path_prepare(asset_code, asset_kind, timeframe, year)
 
+    def _read_years(
+        self, asset_kind: InstrumentKind, asset_code: str, timeframe: Timeframe, years: list[int], columns: list | None
+    ) -> pd.DataFrame:
+        """Concatenate the existing year files in ``years``; a missing year is skipped + warned."""
+        frames: list[pd.DataFrame] = []
+        for year in years:
+            fn_path = self._fn_path_prepare(asset_code, asset_kind, timeframe, year)
+            if not os.path.exists(fn_path):
+                logger.warning("No %s history for %s %d (%s); skipping", asset_kind.value, asset_code, year, fn_path)
+                continue
+            frames.append(rename_legacy_columns(pd.read_parquet(fn_path, columns=columns)))
+        if not frames:
+            return pd.DataFrame(columns=list(columns) if columns else None)
+        return pd.concat(frames, ignore_index=True)
+
     def _load_data_for_period(
         self,
         asset_kind: InstrumentKind,
@@ -33,43 +103,21 @@ class PandasLocalFileProvider(AbstractFileProvider):
         params: RequestParameters,
         columns: list,
     ) -> pd.DataFrame:
-        if params.period_from is None and params.period_to is None:
-            raise NotImplementedError("Load all data")
-        if params.period_from is None:
-            match type(params.period_to):
-                case builtins.int:
-                    fn_path = self._fn_path_prepare(asset_code, asset_kind, params.timeframe, params.period_to)
-                    return rename_legacy_columns(pd.read_parquet(fn_path, columns=columns))
-                case datetime.date:
-                    fn_path = self._fn_path_prepare(asset_code, asset_kind, params.timeframe, params.period_to.year)
-                    df_hist = rename_legacy_columns(pd.read_parquet(fn_path, columns=columns))
-                    return df_hist[df_hist["datetime"] == params.period_to].reset_index(drop=True)
-                case datetime.datetime:
-                    raise NotImplementedError("to period type datetime.datetime")
-                case _:
-                    raise TypeError(f"period_to have incorrect type {type(params.period_to)}")
-        else:
-            match type(params.period_from):
-                case builtins.int:
-                    if params.period_to is None:
-                        raise NotImplementedError("load from period_from to last year")
-                    if isinstance(params.period_to, int):
-                        raise NotImplementedError("Load from year to year")
-                    raise TypeError(
-                        f"Mismatch types period_from {type(params.period_from)} and period_to {type(params.period_to)}"
-                    )
-                case datetime.date:
-                    if params.period_to is None:
-                        raise NotImplementedError("load from period_from to last year")
-                    if isinstance(params.period_to, datetime.date):
-                        raise NotImplementedError("Load from date to date")
-                    raise TypeError(
-                        f"Mismatch types period_from {type(params.period_from)} and period_to {type(params.period_to)}"
-                    )
-                case datetime.datetime:
-                    raise NotImplementedError("period from datatime")
-                case _:
-                    raise TypeError(f"period_from have incorrect type {type(params.period_from)}")
+        period_from, period_to, timeframe = params.period_from, params.period_to, params.timeframe
+        ts_col = OptionsTerm.TIMESTAMP
+
+        # An open bound resolves to the stored data edge; the request is always an inclusive range.
+        stored = sorted(self.get_asset_history_years(asset_code, asset_kind, timeframe))
+        if not stored:
+            return pd.DataFrame(columns=list(columns) if columns else None)
+        from_year = _bound_year(period_from) if period_from is not None else stored[0]
+        to_year = _bound_year(period_to) if period_to is not None else stored[-1]
+
+        years = list(range(min(from_year, to_year), max(from_year, to_year) + 1))
+        df_hist = self._read_years(asset_kind, asset_code, timeframe, years, columns)
+        df_hist = _filter_lower(df_hist, ts_col, period_from)
+        df_hist = _filter_upper(df_hist, ts_col, period_to)
+        return df_hist.reset_index(drop=True)
 
     @validate_call
     def load_options_history(
@@ -141,5 +189,7 @@ class PandasLocalFileProvider(AbstractFileProvider):
         timeframe: Timeframe = Timeframe.EOD,
         columns: list | None = None,
     ) -> pd.DataFrame | None:
-        """Load local history if have, otherwise return None)"""
-        raise NotImplementedError
+        """Local files store only the raw time series, never a pre-selected chain. Return ``None``
+        so the facade (``OptionsChain.select_chain``) builds the chain from loaded history. A
+        provider backed by a live exchange API may instead return the chain directly."""
+        return None

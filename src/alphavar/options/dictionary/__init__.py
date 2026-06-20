@@ -8,6 +8,7 @@ per-dataset membership lives in ``_column_sets``. The old
 
 from alphavar.options.dictionary._asset_types import AssetType
 from alphavar.options.dictionary._classification import (
+    ContractKind,
     OptionPriceStatus,
     OptionRight,
     OptionStyle,
@@ -43,6 +44,7 @@ __all__ = [
     "OptionStyle",
     "OptionPriceStatus",
     "SeriesTenor",
+    "ContractKind",
     # enums / scalars
     "EnumCode",
     "EnumDataFrameColumn",

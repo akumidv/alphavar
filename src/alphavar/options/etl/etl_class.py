@@ -3,6 +3,7 @@
 import datetime
 import logging
 import os
+import platform
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -68,7 +69,7 @@ class EtlOptions(ABC):
 
     TASKS_LIMIT = 4
     SAVE_TASKS_LIMIT = 2
-    HOST_NAME = os.uname()[1]
+    HOST_NAME = platform.node()  # cross-platform hostname (os.uname() is POSIX-only)
     # Instance state (initialized in __init__); declared here only for typing.
     # These MUST NOT be class attributes — they are mutable and would be shared
     # across all EtlOptions instances (e.g. two exchanges in one process).

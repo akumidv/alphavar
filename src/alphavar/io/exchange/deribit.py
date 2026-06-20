@@ -10,12 +10,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 
-from alphavar.core.dictionary import ContractKind, InstrumentKind
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.io.exchange._abstract_exchange import AbstractExchange, RequestClass
 from alphavar.io.exchange.exchange_entities import ExchangeCode
 from alphavar.io.exchange.exchange_exception import InstrumentParseError
 from alphavar.io.provider import DataEngine, RequestParameters
 from alphavar.options.dictionary import (
+    ContractKind,
     OptionsTerm,
     OptionsType,
     Timeframe,
@@ -91,92 +92,107 @@ class DeribitMarket:
         return book_summary_df
 
     @staticmethod
-    def _kind_enrichment(row: pd.Series) -> pd.Series:
-        exch_symbol_arr = DOT_STRIKE_REGEXP.sub(r"\1.\2", row[OptionsTerm.EXCH_SYMBOL]).split(
-            "-"
-        )  # for strike DOGE_USDC-7FEB25-0d4064-C  or 3d12
-        asset_code = exch_symbol_arr[0]
-        row = row.copy(deep=True)
-        match len(exch_symbol_arr):
-            case 1:  # SPOT
-                row[OptionsTerm.ASSET_CODE] = asset_code
-                row[OptionsTerm.INSTRUMENT_KIND] = DeribitAssetKind.SPOT.code
-                return row
-            case 2:  # FUT
-                row[OptionsTerm.ASSET_CODE] = asset_code
-                expiration_date = parse_expiration_date(exch_symbol_arr[1])
-                if expiration_date is None and exch_symbol_arr[1] != "PERPETUAL":
-                    raise InstrumentParseError(
-                        f"Can not parse {exch_symbol_arr[1]}, "
-                        f"None expiration can be only for PERPETUAL: {row}"
-                    )
-                row[OptionsTerm.EXPIRATION_DATE] = expiration_date
-                row[OptionsTerm.INSTRUMENT_KIND] = DeribitAssetKind.FUTURE.code
-                return row
-            case 3:  # FUT COMBO
-                # Second value is strategy for combo, for example FS - future spread
-                row[OptionsTerm.ASSET_CODE] = asset_code
-                row[OptionsTerm.EXPIRATION_DATE] = parse_expiration_date(exch_symbol_arr[2].split("_")[0])
-                row[OptionsTerm.INSTRUMENT_KIND] = DeribitAssetKind.FUTURE_COMBO.code
-                return row
-            case 4:  # OPT AND OPT COMBO
-                row[OptionsTerm.ASSET_CODE] = asset_code
-                expiration_date = parse_expiration_date(exch_symbol_arr[1])
-                if expiration_date is None:  # OPT COMBO
-                    # Second value is strategy for combo, for example PCOND - put condor, CBUT - call butterfly
-                    expiration_date = parse_expiration_date(exch_symbol_arr[2])
-                    kind = DeribitAssetKind.OPTION_COMBO.code
-                    option_type = None
-                    strike = None
-                    future_expiration_date = None
-                else:  # OPT
-                    kind = DeribitAssetKind.OPTION.code
-                    option_type = exch_symbol_arr[3]
-                    if option_type not in ["C", "P"]:
-                        raise InstrumentParseError(f"Unknown option type {option_type}")
-                    option_type = OptionsType.CALL.code if exch_symbol_arr[3] == "C" else OptionsType.PUT.code
-                    strike = float(exch_symbol_arr[2])
+    def _enrich_kinds(df: pd.DataFrame) -> pd.DataFrame:
+        """Parse the venue ``exch_symbol`` into asset_code / instrument_kind / expiration /
+        strike / option_right / underlying-expiration, vectorized by token count (T20).
 
-                    under_arr = row[OptionsTerm.UNDERLYING_CODE].split("-")
-                    if len(under_arr) == 2:
-                        future_expiration_date = parse_expiration_date(under_arr[1])
-                    else:
-                        if row[OptionsTerm.UNDERLYING_CODE] in [
-                            "SYN.EXPIRY",  # Expired already
-                            "index_price",
-                        ]:  # index price
-                            future_expiration_date = None
-                        else:
-                            logger.error("Syntax error in row:\n%s", row)
-                            raise InstrumentParseError(
-                                f"Can not get expiration from underlying_index {row[OptionsTerm.UNDERLYING_CODE]}"
-                            )
-                row[OptionsTerm.OPTION_RIGHT] = option_type
-                row[OptionsTerm.STRIKE] = strike
-                row[OptionsTerm.EXPIRATION_DATE] = expiration_date
-                row[OptionsTerm.INSTRUMENT_KIND] = kind
-                row[OptionsTerm.UNDERLYING_EXPIRATION_DATE] = future_expiration_date
-                if (
-                    row["base_currency"] == row["quote_currency"]
-                    and "estimated_delivery_price" in row
-                    and row["estimated_delivery_price"]
-                ):
-                    # `exch_price` is in COLUMNS_TO_CURRENCY now (gets `_raw` + conversion);
-                    # our `price` is mirrored from it after enrichment (source_interim_price).
+        Replaces the old row-wise ``df.apply(_kind_enrichment, axis="columns")`` (a deep copy
+        per ~5000 instruments — the dominant ETL cost) with boolean masks. Provably equivalent
+        to that logic: ``deribit_normalize_characterization_test`` (D2 Type A).
+
+        Token count ⇒ kind: 1=spot, 2=future, 3=future_combo, 4=option/option_combo (combo when
+        the contract's date slot doesn't parse — e.g. ``BTC-PCOND-…``). Example option symbol
+        (after the ``NdM`` → ``N.M`` strike fix): ``DOGE_USDC-7FEB25-0.4064-C``.
+        """
+        exch = df[OptionsTerm.EXCH_SYMBOL].astype(str).str.replace(DOT_STRIKE_REGEXP, r"\1.\2", regex=True)
+        parts = exch.str.split("-")
+        n = parts.str.len()
+        p0, p1, p2, p3 = parts.str[0], parts.str[1], parts.str[2], parts.str[3]
+
+        m1, m2, m3, m4 = n == 1, n == 2, n == 3, n == 4
+        if not (m1 | m2 | m3 | m4).all():
+            raise InstrumentParseError(
+                f"Can parse instrument_name {df.loc[~(m1 | m2 | m3 | m4), OptionsTerm.EXCH_SYMBOL].tolist()}"
+            )
+
+        df[OptionsTerm.ASSET_CODE] = p0
+
+        # 4-part split into option vs option_combo: a combo's first slot is a strategy, not a date.
+        exp1 = pd.Series(index=df.index, dtype=object)
+        exp1[m4] = p1[m4].map(parse_expiration_date)
+        m_opt = m4 & exp1.notna()
+        m_combo = m4 & exp1.isna()
+
+        kind = pd.Series(index=df.index, dtype=object)
+        kind[m1] = DeribitAssetKind.SPOT.code
+        kind[m2] = DeribitAssetKind.FUTURE.code
+        kind[m3] = DeribitAssetKind.FUTURE_COMBO.code
+        kind[m_opt] = DeribitAssetKind.OPTION.code
+        kind[m_combo] = DeribitAssetKind.OPTION_COMBO.code
+        df[OptionsTerm.INSTRUMENT_KIND] = kind
+
+        if (m2 | m3 | m4).any():
+            expiration = pd.Series(index=df.index, dtype=object)
+            expiration[m2] = p1[m2].map(parse_expiration_date)  # None only for PERPETUAL
+            m2_bad = m2 & expiration.isna() & (p1 != "PERPETUAL")
+            if m2_bad.any():
+                raise InstrumentParseError(
+                    f"Can not parse {p1[m2_bad].tolist()}, None expiration can be only for PERPETUAL"
+                )
+            if m3.any():  # the slice is empty/float-typed otherwise → .str would raise
+                expiration[m3] = p2[m3].str.split("_").str[0].map(parse_expiration_date)
+            if m_opt.any():
+                expiration[m_opt] = exp1[m_opt]
+            if m_combo.any():
+                expiration[m_combo] = p2[m_combo].map(parse_expiration_date)
+            df[OptionsTerm.EXPIRATION_DATE] = pd.to_datetime(expiration, utc=True)
+
+        if m4.any():
+            # option-only fields; option_combo rows keep them empty (as the old code set None)
+            right_tokens = p3[m_opt]
+            bad_right = ~right_tokens.isin(["C", "P"])
+            if bad_right.any():
+                raise InstrumentParseError(f"Unknown option type {right_tokens[bad_right].tolist()}")
+            option_right = pd.Series(index=df.index, dtype=object)
+            option_right[m_opt] = right_tokens.map({"C": OptionsType.CALL.code, "P": OptionsType.PUT.code})
+            df[OptionsTerm.OPTION_RIGHT] = option_right
+
+            strike = pd.Series(index=df.index, dtype="float64")
+            strike[m_opt] = p2[m_opt].astype(float)
+            df[OptionsTerm.STRIKE] = strike
+
+            und_exp = pd.Series(index=df.index, dtype=object)
+            if m_opt.any():  # only real options carry an underlying; combos never read the column
+                und = df[OptionsTerm.UNDERLYING_CODE]
+                und_parts = und.str.split("-")
+                m_und2 = m_opt & (und_parts.str.len() == 2)
+                m_und_bad = m_opt & ~m_und2 & ~und.isin(["SYN.EXPIRY", "index_price"])  # else None
+                if m_und_bad.any():
+                    raise InstrumentParseError(
+                        f"Can not get expiration from underlying_index {und[m_und_bad].tolist()}"
+                    )
+                und_exp[m_und2] = und_parts[m_und2].str[1].map(parse_expiration_date)
+            df[OptionsTerm.UNDERLYING_EXPIRATION_DATE] = pd.to_datetime(und_exp, utc=True)
+
+            # Currency conversion (option/option_combo with a same-currency, priced contract):
+            # `exch_price` is in COLUMNS_TO_CURRENCY, so it gets `_raw` + conversion; our `price`
+            # is mirrored from it afterwards (source_interim_price). A truthy edp matches the old
+            # `if row[col]` / `if edp` (NaN is truthy → kept, only an exact 0 is skipped).
+            m_conv = m4 & (df["base_currency"] == df["quote_currency"])
+            if "estimated_delivery_price" in df.columns:
+                edp = df["estimated_delivery_price"]
+                m_conv = m_conv & (edp != 0)
+                if m_conv.any():
                     for col in COLUMNS_TO_CURRENCY:
-                        if col in row:
-                            row[f"{col}{AbstractExchange.RAW_SUFFIX}"] = row[col]
-                            if row[col]:
-                                row[col] *= row["estimated_delivery_price"]
-                    if (
-                        OptionsTerm.VOLUME_NOTIONAL in row
-                        and "volume_usd" in row
-                        and pd.isna(row[OptionsTerm.VOLUME_NOTIONAL])
-                    ):
-                        row[OptionsTerm.VOLUME_NOTIONAL] = row["volume_usd"]
-                return row
-            case _:
-                raise InstrumentParseError(f"Can parse instrument_name {row[OptionsTerm.EXCH_SYMBOL]}")
+                        if col in df.columns:
+                            df.loc[m_conv, f"{col}{AbstractExchange.RAW_SUFFIX}"] = df.loc[m_conv, col]
+                            m_mul = m_conv & (df[col] != 0)
+                            df.loc[m_mul, col] = df.loc[m_mul, col] * edp[m_mul]
+                    if OptionsTerm.VOLUME_NOTIONAL in df.columns and "volume_usd" in df.columns:
+                        m_vn = m_conv & df[OptionsTerm.VOLUME_NOTIONAL].isna()
+                        df.loc[m_vn, OptionsTerm.VOLUME_NOTIONAL] = df.loc[m_vn, "volume_usd"]
+
+        return df
 
     def _normalize_book(self, book_summary_df: pd.DataFrame, request_timestamp: pd.Timestamp) -> pd.DataFrame:
         if book_summary_df.empty:
@@ -195,12 +211,12 @@ class DeribitMarket:
             "high": OptionsTerm.HIGH_24,
             "low": OptionsTerm.LOW_24,
         }
-        book_summary_df.rename(columns=rename_columns, inplace=True)
+        book_summary_df = book_summary_df.rename(columns=rename_columns)  # no inplace (R8/Polars readiness)
         book_summary_df = df_columns_to_timestamp(book_summary_df, columns=[OptionsTerm.EXCH_TIMESTAMP], unit="ms")
         book_summary_df[OptionsTerm.TIMESTAMP] = book_summary_df[OptionsTerm.EXCH_TIMESTAMP].copy()
         book_summary_df = normalize_timestamp(book_summary_df, columns=[OptionsTerm.TIMESTAMP], freq="1s")
         book_summary_df = fill_option_price(book_summary_df)  # -> exch_price (venue traded)
-        book_summary_df = book_summary_df.apply(self._kind_enrichment, axis="columns", result_type="expand")
+        book_summary_df = self._enrich_kinds(book_summary_df)  # vectorized (T20)
         book_summary_df = source_interim_price(book_summary_df)  # price <- exch_price (interim, T23.6)
         return book_summary_df
 

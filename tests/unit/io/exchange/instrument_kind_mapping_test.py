@@ -2,9 +2,10 @@
 
 import pytest
 
-from alphavar.core.dictionary import ContractKind, InstrumentKind
+from alphavar.core.dictionary import InstrumentKind
 from alphavar.io.exchange.deribit import DeribitAssetKind, DeribitExchange
 from alphavar.io.exchange.moex import MoexExchange
+from alphavar.options.dictionary import ContractKind
 
 
 def test_deribit_asset_kind_values_are_venue_native():

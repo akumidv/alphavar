@@ -13,7 +13,58 @@ from alphavar.core.dictionary import Term
 
 
 class OptionsTerm(Term):
-    """Options/futures term registry (core terms + domain terms; one name per concept)."""
+    """Options/futures term registry (core terms + domain terms; one name per concept).
+
+    Adds the **derivatives** terms that core (neutral, shared by spot too) must not describe:
+    the contract/underlying structure, implied volatility, mark/settlement, greeks, and open
+    interest. Spot data simply doesn't carry these — which is exactly what keeping them here,
+    not in core, makes explicit (R0 / R4.3)."""
+
+    # --- Derivative contract structure (R4.1.1 / R4.5) ---
+    CONTRACT_KIND: Final = "contract_kind"
+    """Contract/product kind (``ContractKind``: vanilla / cso / stir / combo …) — same
+    asset class, different products. Deribit ``future_combo``/``option_combo`` map here."""
+
+    EXPIRATION_DATE: Final = "expiration_date"
+    """Contract expiration date."""
+
+    UNDERLYING_CODE: Final = "underlying_asset_code"
+    """Underlying contract code (None for spot)."""
+
+    UNDERLYING_ASSET_CLASS: Final = "underlying_asset_class"
+    """Asset class of the underlying (``AssetClass``). Was ``underlying_asset_type``."""
+
+    UNDERLYING_EXPIRATION_DATE: Final = "underlying_expiration_date"
+    """Underlying contract expiration date."""
+
+    # --- Implied vol / mark / settlement (R4.2; derivatives) ---
+    IV: Final = "iv"
+    """Our normalized implied volatility (headline value)."""
+
+    EXCH_IV: Final = "exch_iv"
+    """Exchange-published implied volatility (raw venue data)."""
+
+    EXCH_MARK_PRICE: Final = "exch_mark_price"
+    """Exchange mark / fair-value estimate (Deribit mark_price, MOEX theorprice).
+    An estimate, not a trade."""
+
+    EXCH_MARK_IV: Final = "exch_mark_iv"
+    """Exchange mark implied volatility."""
+
+    SETTLE_PRICE: Final = "settle_price"
+    """Official daily clearing/settlement price. EOD-only; null intraday."""
+
+    SETTLE_IV: Final = "settle_iv"
+    """Settlement implied volatility. EOD-only."""
+
+    OPEN_INTEREST: Final = "open_interest"  # contracts
+
+    # --- Greeks (derivatives) ---
+    DELTA: Final = "delta"
+    GAMMA: Final = "gamma"
+    VEGA: Final = "vega"
+    THETA: Final = "theta"
+    RHO: Final = "rho"
 
     # --- Option contract attributes (classification axes: R4.5) ---
     STRIKE: Final = "strike"
