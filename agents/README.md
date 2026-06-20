@@ -1,103 +1,49 @@
-# AI agents — `agents/`
+# `agents/` — the operating ("desk") agents
 
-This directory is the project's **AI agent operating system**: the charters, knowledge,
-skills, tools and memory for the assistants that **build** and **operate** the alphavar
-ecosystem. It is kept in-repo (versioned, shared across the team and machines — incl.
-Windows, no symlinks) and **LLM-agnostic**: plain Markdown/JSON any assistant (Claude,
-GPT/Codex, Gemini, Copilot, …) or human can read. No vendor's tooling is privileged here;
-the single entry point is the root [`AGENTS.md`](../AGENTS.md).
+**The trading desk.** Agents that **operate** the alphavar ecosystem on the market — fetch
+and analyse data, test strategies, and (only the trader) place orders through
+[`catcher-bot`](https://github.com/akumidv/catcher-bot).
 
-Canonical **rules** are not duplicated here — they live in `docs/dev/` and are indexed by
-`AGENTS.md`: architecture `ARCHITECTURE_REQUIREMENTS.md` (**R#**), development
-`DEVELOPMENT_REQUIREMENTS.md` (**D#**), and the desk runtime guardrails
-[`desk/GUARDRAILS.md`](desk/GUARDRAILS.md) (**G#**).
+> This is the **OPERATE** mode — runtime market actors, a different concern from developing
+> the project (`_forge/`) or using the library (root `skills/`). OPERATE is **not yet part
+> of the keystone model** — see [`../_forge/keystone/ROADMAP.md`](../_forge/keystone/ROADMAP.md)
+> (O1). These agents and their **G#** guardrails predate that formulation and will be
+> reworked into it.
 
-## Two classes of agent
+**Bound by** the runtime guardrails [`GUARDRAILS.md`](GUARDRAILS.md) (**G#**), plus the
+architecture rules
+[`../docs/dev/ARCHITECTURE_REQUIREMENTS.md`](../docs/dev/ARCHITECTURE_REQUIREMENTS.md)
+(**R#**) wherever an agent touches the project's data model. The build rules **D#** do *not*
+apply here — desk agents never edit the codebase.
 
-The ecosystem's mission is **alpha extraction** from financial markets (options/derivatives
-now; equities, bonds, macro later), through the alphavar library plus the
-[`catcher-bot`](https://github.com/akumidv/catcher-bot) trading bot. That splits the agents
-by **what they act on** — not by domain:
+## Roster (one folder per agent)
 
-| | **Build — [`_dev/`](_dev/)** | **Operate — [`desk/`](desk/)** |
+Each agent is a folder: a `README.md` charter (role, scope, guardrails), a `pipeline.md`
+(the ordered playbook), and its own `skills/ tools/ memory/`. Domain how-to comes from the
+USAGE layer ([`../skills/`](../skills/) — the concept→function map).
+
+| Agent | Acts | Status |
 |---|---|---|
-| Acts on | the **codebase** | the **market / data / money** |
-| Output | commits / PRs | analyses / signals / **orders** |
-| Bound by | **R# + D#** (esp. **D2** owner-verify) | **G#** guardrails (+ R# for the data model) |
-| Main risk | broken build | **lost money, silent wrong output** |
-| Runs | during development (SDLC) | at runtime, possibly unattended / server-side |
+| [`options-analyst/`](options-analyst/) | read-only — mispricing / IV-surface scan | reference (seeded) |
+| `investment-analyst/` | read-only — cross-asset allocation views | planned |
+| `strategy-tester/` | read-only — backtest strategies, report | planned |
+| `fundamental-analyst/` | read-only — company fundamentals → equity/bond forecast | planned |
+| `trader/` | **acts** — places orders via catcher-bot (strongest G#) | planned (Phase 4) |
+| `orchestrator/` | routes work, separation of duties, consolidated analysis | planned |
 
-- **`_dev/`** — underscore = *private/special*: it is the one agent that edits this repo.
-- **`shared/`** — substrate (domain knowledge; later shared skills/tools) used by both
-  classes, destined for an **MCP** server so the wider ecosystem can consume it.
+## Orchestration
 
-## Modes & switching (vendor-neutral)
+The **orchestrator** is the head-of-desk: it routes a request to the right agent(s),
+combines their outputs into one consolidated view, and enforces **separation of duties** —
+the agent that *proposes* a trade (analyst / strategy-tester) is never the one that
+*executes* it (trader), with the orchestrator (or a human) as the gate (**G9**). Entering
+desk mode without naming a role lands here; or address a role directly ("as
+options-analyst …").
 
-Mode selection lives entirely in `AGENTS.md` — no provider-specific feature required, so it
-works identically on any LLM:
+## Learn loop (desk side)
 
-- **Default = DESK (operate).** A session starts on the desk unless told otherwise.
-- **Switch by plain-text signal:** say `dev` / `build` → build mode (`_dev/`, rules R#+D#);
-  say `desk` / `operate` → desk mode (rules G#).
-- **Session-start banner:** the assistant's first message states the active mode and how to
-  switch (so you are never unsure which mode is live).
-- Optional vendor shims (`.claude/agents/*.md`, Cursor/Codex equivalents) only **reference**
-  these charters — the switch never depends on them.
-
-## Entity theses (what is what)
-
-- **Agent** — a `README.md` charter (role, scope, success, guardrails) + a `pipeline` + the
-  skills/tools/knowledge it binds + memory. One agent = one role.
-- **Class** — `_dev` (build the system) vs `desk` (operate it). Differ by subject (code vs
-  market), output (commit vs order), risk (broken build vs lost money).
-- **Skill** — a playbook: *when / why / in what order*. **shared** (`shared/skills/`) or
-  **agent-local** (`<agent>/skills/`). May call a tool or be pure procedure.
-- **Tool** — code: deterministic, committed, reusable (D4). shared or agent-local. Reuses
-  project code (`alphavar.*`, the catcher-bot client) — never re-implements it.
-- **Knowledge** — concentrated, **sourced** domain reference. Always shared
-  (`shared/knowledge/` → MCP). Agents consume it; they don't fork it per agent.
-- **Memory** — durable learned notes. `_dev` = how-we-build; a desk agent = operating
-  insights (the raw material of the learn loop).
-- **Guardrail (G#)** — a hard runtime constraint for desk agents. Tiers: *global / class /
-  agent*. Lives in [`desk/GUARDRAILS.md`](desk/GUARDRAILS.md).
-- **Orchestrator** — head-of-desk: routes work across desk agents, enforces **separation of
-  duties** (propose ≠ execute), produces the consolidated analysis.
-- **Learn loop** — a desk agent saves a key action/insight to its `memory/`; the **build
-  agent** (under R#/D#, via the TODO cycle in [`_dev/TASKS.md`](_dev/TASKS.md)) reworks it
-  into skills/tools/code, or it graduates into `shared/knowledge/`. The ecosystem improves
-  itself *through* the dev agent, not by self-editing the codebase.
-
-## Layout
-
-```
-agents/
-  README.md            # this file — agent OS overview, modes, entity theses
-  _dev/                # BUILD agent (private/special) — builds alphavar itself
-    README.md          #   charter (rules: R# + D#)
-    TASKS.md           #   remediation backlog / TODO cycle / learn-loop sink
-    skills/  tools/  memory/
-  shared/              # cross-agent substrate (→ MCP later)
-    knowledge/         #   sourced domain reference (exchanges, options, risk, portfolio)
-  desk/                # OPERATE agents (default mode) — use alphavar + catcher-bot
-    README.md          #   operating model, roster, orchestration
-    GUARDRAILS.md      #   G# — desk runtime guardrails
-    options-analyst/   #   one agent = charter + pipeline + skills/ tools/ memory/
-    …                  #   investment-analyst, strategy-tester, fundamental-analyst, trader, orchestrator
-```
-
-## Conventions
-
-- **Folder index = `README.md`** (GitHub auto-renders it — the folder's welcome mat).
-  Decided 2026-06-14; not `INDEX.md` (a static-site-generator concept).
-- **`agents/` at the repo root, not `docs/`** — these are agent artifacts, not project
-  documentation, and code+spec sit together (Anthropic **Agent Skills** standard). Decision
-  records: [`_dev/memory/agent-artifacts-layout.md`](_dev/memory/agent-artifacts-layout.md)
-  and [`_dev/memory/agent-modes-and-layout.md`](_dev/memory/agent-modes-and-layout.md).
-- Per-tool vendor files (`CLAUDE.md`, `.github/copilot-instructions.md`, …) are thin
-  pointers to `AGENTS.md` — never a second source of truth.
-
-**Practices compared (2025–2026):** [AGENTS.md as the cross-tool entry
-point](https://blog.buildbetter.ai/agents-md-complete-guide-for-engineering-teams-in-2026/);
-Anthropic [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
-([open standard](https://www.agensi.io/learn/agent-skills-open-standard)) — a skill is a
-folder with its doc + scripts together; a root `agents/` for agentic tooling.
+A desk agent **persists its key actions and insights to its own `memory/`** (what it looked
+at, what it concluded, what was missing or wrong). It does **not** change code or add tools
+itself. The [engineer agent](../_forge/agents/engineer/README.md) drains those notes via the
+TODO cycle ([`../_forge/TASKS.md`](../_forge/TASKS.md)) and, under R#/D#, reworks them into
+skills, tools, or library changes. See **G10** in [`GUARDRAILS.md`](GUARDRAILS.md).

@@ -1,50 +1,75 @@
 """ETL class"""
+
 import datetime
+import logging
 import os
-import sys
+import platform
+import threading
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+
 import pandas as pd
+
 try:
-    from apscheduler.schedulers.blocking import BlockingScheduler
     from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.schedulers.base import STATE_STOPPED as JOBS_STATE_STOPPED
+    from apscheduler.schedulers.blocking import BlockingScheduler
 except ImportError as err:  # apscheduler is an optional extra
     raise ImportError(
         "alphavar ETL requires APScheduler. Install the 'etl' extra: "
         "pip install 'alphavar[etl]' (or: poetry install --with etl)."
     ) from err
-from alphavar.options_lib.dictionary import Timeframe, AssetKind
-from alphavar.options_lib.normalization import validate_path_segment
-from alphavar.exchange import AbstractExchange
-from alphavar.messanger import AbstractMessanger, StandardMessanger
+from alphavar.core.dictionary import InstrumentKind
+from alphavar.io.exchange import AbstractExchange
+from alphavar.io.messanger import AbstractMessanger, StandardMessanger
+from alphavar.options.dictionary import Timeframe
+from alphavar.options.lib.normalization import validate_path_segment
+from alphavar.options.schemas import FuturesHistory, OptionsHistory, SpotHistory, validate
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class AssetBookData:
     """Asset book data for timeframe"""
+
     asset_name: str
     request_timestamp: pd.Timestamp
-    option: pd.DataFrame | None
-    future: pd.DataFrame | None
+    options: pd.DataFrame | None
+    futures: pd.DataFrame | None
     spot: pd.DataFrame | None
+
+
+def validate_book_data(book: AssetBookData) -> AssetBookData:
+    """Boundary validation (R4.4, T23.5): check each kind's frame against its schema before it
+    is persisted — the exchange→storage boundary. No-op when ``ALPHAVAR_VALIDATE=0`` (set in
+    production ETL); raises ``SchemaErrors`` on violation otherwise. Returns ``book`` unchanged
+    (validation is a check; the stored frames are not the coerced copies)."""
+    if book.options is not None:
+        validate(OptionsHistory, book.options)
+    if book.futures is not None:
+        validate(FuturesHistory, book.futures)
+    if book.spot is not None:
+        validate(SpotHistory, book.spot)
+    return book
 
 
 @dataclass
 class SaveTask:
     """Save task data. Mutable: ``df`` is cleared after a successful save to free memory."""
+
     store_path: str
     df: pd.DataFrame | None
 
 
 class EtlOptions(ABC):
     """ETL Class"""
+
     TASKS_LIMIT = 4
     SAVE_TASKS_LIMIT = 2
-    HOST_NAME = os.uname()[1]
+    HOST_NAME = platform.node()  # cross-platform hostname (os.uname() is POSIX-only)
     # Instance state (initialized in __init__); declared here only for typing.
     # These MUST NOT be class attributes — they are mutable and would be shared
     # across all EtlOptions instances (e.g. two exchanges in one process).
@@ -62,10 +87,16 @@ class EtlOptions(ABC):
     _messages: list
     _messages_lock: threading.Lock
 
-    def __init__(self, exchange: AbstractExchange, asset_names: list[str] | str | None, timeframe: Timeframe,
-                 update_data_path: str, timeframe_cron: dict | str | None = None,
-                 messanger: AbstractMessanger | None = None,
-                 is_detailed: bool = False):
+    def __init__(
+        self,
+        exchange: AbstractExchange,
+        asset_names: list[str] | str | None,
+        timeframe: Timeframe,
+        update_data_path: str,
+        timeframe_cron: dict | str | None = None,
+        messanger: AbstractMessanger | None = None,
+        is_detailed: bool = False,
+    ):
         """
         Initialize ETL
 
@@ -81,7 +112,7 @@ class EtlOptions(ABC):
         self._messages_lock = threading.Lock()
         self._number_of_requests = 0
         self._number_of_jobs = 0
-        self._avg_job_time = 0.
+        self._avg_job_time = 0.0
         self._number_saved_files = 0
 
         self.exchange = exchange
@@ -92,76 +123,95 @@ class EtlOptions(ABC):
 
         self._last_request_timestamp = pd.Timestamp.now(tz=datetime.UTC)
         self._heartbeat_last_message_time = self._last_request_timestamp
-        self._scheduler_background: BackgroundScheduler = BackgroundScheduler(timezone=datetime.UTC) # job_defaults={'max_instances': 1})
+        self._scheduler_background: BackgroundScheduler = BackgroundScheduler(
+            timezone=datetime.UTC
+        )  # job_defaults={'max_instances': 1})
         self._heartbeat_message_interval = pd.Timedelta(minutes=timeframe.mult * 2 if timeframe.mult < 30 else 60)
-        self._scheduler_background.add_job(self._heartbeat, 'interval',
-                                           minutes=(1 if self._heartbeat_message_interval.total_seconds() * 60 < 30
-                                                    else 10), max_instances=1)
-        self._scheduler_background.add_job(self._report, 'interval', hours=(4 if timeframe.mult >= 30 else 1),
-                                           max_instances=1)
-        self._scheduler_background.add_job(self._save_tasks_dataframes_job, 'interval', seconds=120, max_instances=1)
+        self._scheduler_background.add_job(
+            self._heartbeat,
+            "interval",
+            minutes=(1 if self._heartbeat_message_interval.total_seconds() * 60 < 30 else 10),
+            max_instances=1,
+        )
+        self._scheduler_background.add_job(
+            self._report, "interval", hours=(4 if timeframe.mult >= 30 else 1), max_instances=1
+        )
+        self._scheduler_background.add_job(self._save_tasks_dataframes_job, "interval", seconds=120, max_instances=1)
         if timeframe_cron is None:
             timeframe_cron = self._get_cron_params_from_timeframe(timeframe, is_detailed)
         elif isinstance(timeframe_cron, str):
             timeframe_cron = self._parse_cron_string(timeframe_cron)
-        self._scheduler_etl: BlockingScheduler = BlockingScheduler(timezone=datetime.UTC,
-                                                                   job_defaults={'max_instances': 1})
-        self._scheduler_etl.add_job(self._book_snapshot_timeframe_job, 'cron', **timeframe_cron, timezone=datetime.UTC,
-                                    max_instances=1)
+        self._scheduler_etl: BlockingScheduler = BlockingScheduler(
+            timezone=datetime.UTC, job_defaults={"max_instances": 1}
+        )
+        self._scheduler_etl.add_job(
+            self._book_snapshot_timeframe_job, "cron", **timeframe_cron, timezone=datetime.UTC, max_instances=1
+        )
 
     def _heartbeat(self):
         if pd.Timestamp.now(tz=datetime.UTC) - self._heartbeat_last_message_time > self._heartbeat_message_interval:
-            print(f'[HB] [{datetime.datetime.now().isoformat(timespec="seconds")}] '
-                  f'loading {"yes" if self._get_data_lock.locked() else "no"}, '
-                  f'saving {"yes" if self._save_data_lock.locked() else "no"}, '
-                  f'updates to save: {len(self._save_tasks)}, saved {self._number_saved_files}, '
-                  f'requests made {self._number_of_requests} '
-                  f'in jobs {self._number_of_jobs} by avg {self._avg_job_time: .2f} sec')
+            logger.info(
+                "[HB] loading %s, saving %s, updates to save: %d, saved %d, "
+                "requests made %d in jobs %d by avg %.2f sec",
+                "yes" if self._get_data_lock.locked() else "no",
+                "yes" if self._save_data_lock.locked() else "no",
+                len(self._save_tasks),
+                self._number_saved_files,
+                self._number_of_requests,
+                self._number_of_jobs,
+                self._avg_job_time,
+            )
         if len(self._messages) > 0:
             self._report()
 
     def _report(self):
-        report_text = f'`[{self.HOST_NAME} ETL REPORT]` {datetime.datetime.now().isoformat(timespec="seconds")}\n' \
-                      f'Exchange: **{self.exchange.exchange_code}** for timeframe *{self._timeframe.value}*\n' \
-                      f'Saved files {self._number_saved_files} (waiting {len(self._save_tasks)}), ' \
-                      f'{self._number_of_requests} requests made ' \
-                      f'in {self._number_of_jobs} jobs by avg {self._avg_job_time: .2f} sec'
+        report_text = (
+            f"`[{self.HOST_NAME} ETL REPORT]` {datetime.datetime.now().isoformat(timespec='seconds')}\n"
+            f"Exchange: **{self.exchange.exchange_code}** for timeframe *{self._timeframe.value}*\n"
+            f"Saved files {self._number_saved_files} (waiting {len(self._save_tasks)}), "
+            f"{self._number_of_requests} requests made "
+            f"in {self._number_of_jobs} jobs by avg {self._avg_job_time: .2f} sec"
+        )
         messages = self._get_messages()
         if len(messages) > 0:
-            report_text += '\n(!)`Warning messages`:\n'
-            report_text += '\n- '.join(messages)
+            report_text += "\n(!)`Warning messages`:\n"
+            report_text += "\n- ".join(messages)
         self._messanger.send_message(report_text)
 
     def print_etl(self):
         def report_jobs(scheduler):
             # pylint: disable=protected-access, W0212
-            text = ''
+            text = ""
             with scheduler._jobstores_lock:
                 if scheduler.state == JOBS_STATE_STOPPED:
                     if scheduler._pending_jobs:
-                        text += '\nPending jobs:'
+                        text += "\nPending jobs:"
                         for job, _, _ in scheduler._pending_jobs:
-                            text += f'\n   - `{job}`'
+                            text += f"\n   - `{job}`"
                     else:
-                        text += '\nNo pending jobs'
+                        text += "\nNo pending jobs"
             return text
 
         """Print jobs"""
-        report_text = 'Assets:' + ','.join(self._asset_names) \
-            if isinstance(self._asset_names, list) \
-            else (self._asset_names if self._asset_names else 'All assets.')
-        report_text += f'\nTimeframe: {self._timeframe.value}'
-        report_text += f'\nStored path: {os.path.abspath(os.path.normpath(self._update_data_path))}'
+        report_text = (
+            "Assets:" + ",".join(self._asset_names)
+            if isinstance(self._asset_names, list)
+            else (self._asset_names if self._asset_names else "All assets.")
+        )
+        report_text += f"\nTimeframe: {self._timeframe.value}"
+        report_text += f"\nStored path: {os.path.abspath(os.path.normpath(self._update_data_path))}"
         report_text += report_jobs(self._scheduler_etl)
         report_text += report_jobs(self._scheduler_background)
-        print(report_text)
+        logger.info("%s", report_text)
         self._messanger.send_message(report_text)
 
-    def get_updates_folder(self, asset_name: str, asset_kind: AssetKind | str, timeframe: Timeframe) -> str:
+    def get_updates_folder(self, asset_name: str, asset_kind: InstrumentKind | str, timeframe: Timeframe) -> str:
         """Return path to folder where all update should be stored"""
-        validate_path_segment(asset_name, field='asset_name')
-        return f'{self._update_data_path}/{self.exchange.exchange_code}/{asset_name}/' \
-               f'{asset_kind if isinstance(asset_kind, str) else asset_kind.value}/{timeframe.value}'
+        validate_path_segment(asset_name, field="asset_name")
+        return (
+            f"{self._update_data_path}/{self.exchange.exchange_code}/{asset_name}/"
+            f"{asset_kind if isinstance(asset_kind, str) else asset_kind.value}/{timeframe.value}"
+        )
 
     def start(self):
         """Start scheduled loading"""
@@ -171,42 +221,63 @@ class EtlOptions(ABC):
     @staticmethod
     def _parse_cron_string(timeframe_cron: str):
         if not isinstance(timeframe_cron, str):
-            raise TypeError('Parsed cron should be string')
-        cron_arr = timeframe_cron.split(' ')
+            raise TypeError("Parsed cron should be string")
+        cron_arr = timeframe_cron.split(" ")
         if len(cron_arr) != 5:
-            raise ValueError('Cron structure mismatch')
+            raise ValueError("Cron structure mismatch")
 
-        return {'day_of_week': cron_arr[4], 'month': cron_arr[3], 'day': cron_arr[2], 'hour': cron_arr[1],
-                'minute': cron_arr[0]}
+        return {
+            "day_of_week": cron_arr[4],
+            "month": cron_arr[3],
+            "day": cron_arr[2],
+            "hour": cron_arr[1],
+            "minute": cron_arr[0],
+        }
 
     @staticmethod
     def _get_cron_params_from_timeframe(timeframe: Timeframe, is_detailed: bool = False):
         match timeframe:
             case Timeframe.EOD:
-                return {'day': '*', 'hour': '0,12,23', 'minute': 59} if is_detailed else {'day': '*', 'hour': 23,
-                                                                                          'minute': 59}
+                return (
+                    {"day": "*", "hour": "0,12,23", "minute": 59}
+                    if is_detailed
+                    else {"day": "*", "hour": 23, "minute": 59}
+                )
             case Timeframe.MINUTE_1:
-                return {'hour': '*', 'minute': '*'}
+                return {"hour": "*", "minute": "*"}
             case Timeframe.MINUTE_5:
-                return {'hour': '*', 'minute': '0,3,4,5,7,9,10,12,14,15,17,19,20,22,24,25,27,29,'
-                                               '30,32,34,35,37,39,40,42,44,45,47,49,50,52,54,55,57,59'
-                        } if is_detailed else {'hour': '*', 'minute': '4,9,14,19,24,29,34,39,44,49,54,59'}
+                return (
+                    {
+                        "hour": "*",
+                        "minute": "0,3,4,5,7,9,10,12,14,15,17,19,20,22,24,25,27,29,"
+                        "30,32,34,35,37,39,40,42,44,45,47,49,50,52,54,55,57,59",
+                    }
+                    if is_detailed
+                    else {"hour": "*", "minute": "4,9,14,19,24,29,34,39,44,49,54,59"}
+                )
             case Timeframe.MINUTE_15:
-                return {'hour': '*', 'minute': '0,7,14,15,22,29,30,37,44,45,52,59'} if is_detailed else \
-                    {'hour': '*', 'minute': '14,29,44,59'}
+                return (
+                    {"hour": "*", "minute": "0,7,14,15,22,29,30,37,44,45,52,59"}
+                    if is_detailed
+                    else {"hour": "*", "minute": "14,29,44,59"}
+                )
             case Timeframe.MINUTE_30:
-                return {'hour': '*', 'minute': '0,15,29,30,45,59'} if is_detailed else {'hour': '*', 'minute': '29,59'}
+                return {"hour": "*", "minute": "0,15,29,30,45,59"} if is_detailed else {"hour": "*", "minute": "29,59"}
             case Timeframe.HOUR_1:
-                return {'hour': '*', 'minute': '0,30,59'} if is_detailed else {'hour': '*', 'minute': 59}
+                return {"hour": "*", "minute": "0,30,59"} if is_detailed else {"hour": "*", "minute": 59}
             case Timeframe.HOUR_4:
-                return {'hour': '0,2,3,4,6,7,8,10,11,12,14,15,16,18,19,20,22,23', 'minute': 59} if is_detailed else \
-                    {'hour': '3,7,11,15,19,23', 'minute': 59}
+                return (
+                    {"hour": "0,2,3,4,6,7,8,10,11,12,14,15,16,18,19,20,22,23", "minute": 59}
+                    if is_detailed
+                    else {"hour": "3,7,11,15,19,23", "minute": 59}
+                )
             case _:
-                raise NotImplementedError(f'Unknown timeframe  {timeframe.value}')
+                raise NotImplementedError(f"Unknown timeframe  {timeframe.value}")
 
     @staticmethod
-    def _check_is_request_later_then_timestamp(request_timestamp: pd.Timestamp, last_request_timestamp,
-                                               timeframe: Timeframe) -> bool:
+    def _check_is_request_later_then_timestamp(
+        request_timestamp: pd.Timestamp, last_request_timestamp, timeframe: Timeframe
+    ) -> bool:
         request_diff = request_timestamp - last_request_timestamp
         match timeframe:
             case Timeframe.EOD:
@@ -231,7 +302,7 @@ class EtlOptions(ABC):
     def _add_message(self, message: str):
         with self._messages_lock:
             self._messages.append(message)
-        print(message, flush=True)
+        logger.warning("%s", message)
 
     def _book_snapshot_timeframe_job(self):
         """
@@ -241,28 +312,36 @@ class EtlOptions(ABC):
         if self._save_data_lock.locked():
             # It good idea move to queue of jobs and check len of queue if more than limit - than drop new requests,
             # also can measure avg time of requests and forecast by timeframe what to drop to keep data integrity
-            print('[ERROR] Can not be two requests for data at the same time, something wrong, request for time'
-                  f'{datetime.datetime.now().isoformat()} delayed', file=sys.stderr)
+            logger.error(
+                "Can not be two requests for data at the same time, something wrong, request for time %s delayed",
+                datetime.datetime.now().isoformat(),
+            )
 
         with self._get_data_lock:
             start_tm = time.time()
             request_timestamp = pd.Timestamp.now(tz=datetime.UTC)
-            if self._check_is_request_later_then_timestamp(request_timestamp, self._last_request_timestamp,
-                                                           self._timeframe):
-                self._add_message(f'[WARNING] [{datetime.datetime.now().isoformat(timespec="seconds")}] request '
-                                  f'distance more than timeframe {self._timeframe.value}: '
-                                  f'{request_timestamp - self._last_request_timestamp}')
+            if self._check_is_request_later_then_timestamp(
+                request_timestamp, self._last_request_timestamp, self._timeframe
+            ):
+                self._add_message(
+                    f"[WARNING] [{datetime.datetime.now().isoformat(timespec='seconds')}] request "
+                    f"distance more than timeframe {self._timeframe.value}: "
+                    f"{request_timestamp - self._last_request_timestamp}"
+                )
             if isinstance(self._asset_names, list):
                 with ThreadPoolExecutor(max_workers=self.TASKS_LIMIT) as executor:
-                    jobs = {executor.submit(self.get_symbols_books_snapshot, asset_name,
-                                            request_timestamp=request_timestamp): asset_name
-                            for asset_name in self._asset_names}
+                    jobs = {
+                        executor.submit(
+                            self.get_symbols_books_snapshot, asset_name, request_timestamp=request_timestamp
+                        ): asset_name
+                        for asset_name in self._asset_names
+                    }
                     for job in as_completed(jobs):
                         asset_name = jobs[job]
                         try:
                             book_data = job.result()
                         except Exception as err:  # one failing asset must not drop the rest
-                            self._add_message(f'[ERROR] for {asset_name} book data: {err}')
+                            self._add_message(f"[ERROR] for {asset_name} book data: {err}")
                             continue
                         self._save_timeframe_book_update(book_data)
                     self._number_of_requests += len(self._asset_names)
@@ -272,8 +351,11 @@ class EtlOptions(ABC):
                 self._number_of_requests += 1
             self._number_of_jobs += 1
             self._last_request_timestamp = request_timestamp
-            self._avg_job_time = self._avg_job_time - self._avg_job_time / self._number_of_jobs + \
-                                 (time.time() - start_tm) / self._number_of_jobs
+            self._avg_job_time = (
+                self._avg_job_time
+                - self._avg_job_time / self._number_of_jobs
+                + (time.time() - start_tm) / self._number_of_jobs
+            )
 
     @abstractmethod
     def get_symbols_books_snapshot(self, asset_name: str, request_timestamp: pd.Timestamp) -> AssetBookData:
@@ -285,26 +367,38 @@ class EtlOptions(ABC):
         """Get timeframe hierarchy folder structure and name"""
         match timeframe:
             case Timeframe.EOD:
-                return f'{request_timestamp.year}/{request_timestamp.strftime("%y-%m-%d")}.parquet'
+                return f"{request_timestamp.year}/{request_timestamp.strftime('%y-%m-%d')}.parquet"
             case Timeframe.MINUTE_1:
-                return f'{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/' \
-                       f'{request_timestamp.strftime("%y-%m-%dT%H-%M")}.parquet'
+                return (
+                    f"{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/"
+                    f"{request_timestamp.strftime('%y-%m-%dT%H-%M')}.parquet"
+                )
             case Timeframe.MINUTE_5:
-                return f'{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/' \
-                       f'{request_timestamp.strftime("%y-%m-%dT%H-%M")}.parquet'
+                return (
+                    f"{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/"
+                    f"{request_timestamp.strftime('%y-%m-%dT%H-%M')}.parquet"
+                )
             case Timeframe.HOUR_1:
-                return f'{request_timestamp.year}/{request_timestamp.month}/' \
-                       f'{request_timestamp.strftime("%y-%m-%dT%H-%M")}.parquet'
+                return (
+                    f"{request_timestamp.year}/{request_timestamp.month}/"
+                    f"{request_timestamp.strftime('%y-%m-%dT%H-%M')}.parquet"
+                )
             case _:
                 if timeframe.mult <= 120:
-                    return f'{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/' \
-                           f'{request_timestamp.strftime("%y-%m-%dT%H-%M")}.parquet'
+                    return (
+                        f"{request_timestamp.year}/{request_timestamp.month}/{request_timestamp.day}/"
+                        f"{request_timestamp.strftime('%y-%m-%dT%H-%M')}.parquet"
+                    )
                 elif timeframe.mult <= 60 * 24 * 2:
-                    return f'{request_timestamp.year}/{request_timestamp.month}/' \
-                           f'{request_timestamp.strftime("%y-%m-%dT%H")}.parquet'
-                return f'{request_timestamp.year}/{request_timestamp.strftime("%y-%m-%d")}.parquet'
+                    return (
+                        f"{request_timestamp.year}/{request_timestamp.month}/"
+                        f"{request_timestamp.strftime('%y-%m-%dT%H')}.parquet"
+                    )
+                return f"{request_timestamp.year}/{request_timestamp.strftime('%y-%m-%d')}.parquet"
 
-    def get_timeframe_update_path(self, asset_name: str, asset_kind: AssetKind | str, request_timestamp: pd.Timestamp):
+    def get_timeframe_update_path(
+        self, asset_name: str, asset_kind: InstrumentKind | str, request_timestamp: pd.Timestamp
+    ):
         """Get path for request datetime correspondent to timeframe"""
         base_path = self.get_updates_folder(asset_name, asset_kind, self._timeframe)
         update_folder = self.get_request_timeframe_file(self._timeframe, request_timestamp)
@@ -332,7 +426,7 @@ class EtlOptions(ABC):
                         try:
                             job.result()
                         except Exception as err:  # surface save failures instead of swallowing them
-                            self._add_message(f'[ERROR] saving task failed: {err}')
+                            self._add_message(f"[ERROR] saving task failed: {err}")
                 self._number_saved_files += len(tasks)
                 del tasks
 
@@ -350,27 +444,27 @@ class EtlOptions(ABC):
                 df_cur = pd.read_parquet(fn)
                 df = pd.concat([df_cur, df], ignore_index=True, copy=False)
             except Exception as err:
-                new_fn = f'{fn}_{datetime.datetime.now(tz=datetime.UTC).isoformat().replace(":", "_")}'
+                new_fn = f"{fn}_{datetime.datetime.now(tz=datetime.UTC).isoformat().replace(':', '_')}"
                 try:
                     os.rename(fn, new_fn)
-                    error_text = f'[ERROR] loading updating file {fn}. File renamed to {new_fn}. Error: {err}'
+                    error_text = f"[ERROR] loading updating file {fn}. File renamed to {new_fn}. Error: {err}"
                 except Exception as new_err:
-                    error_text = f'[ERROR] loading and renaming updating file {fn}: {err}/{new_err}'
+                    error_text = f"[ERROR] loading and renaming updating file {fn}: {err}/{new_err}"
                 self._add_message(error_text)
         df.reset_index(drop=True, inplace=True)
         try:
             df.to_parquet(fn)
         except Exception as err:
-            error_text = f'[ERROR] saving file {fn}: {err}'
+            error_text = f"[ERROR] saving file {fn}: {err}"
             try:
                 df.to_parquet(fn)
             except Exception as new_err:
-                new_fn = f'{fn}_{datetime.datetime.now(tz=datetime.UTC).isoformat().replace(":", "_")}'
+                new_fn = f"{fn}_{datetime.datetime.now(tz=datetime.UTC).isoformat().replace(':', '_')}"
                 try:
                     df.to_parquet(new_fn)
-                    error_text += f'. Saved as {new_fn} ({new_err})'
+                    error_text += f". Saved as {new_fn} ({new_err})"
                 except Exception as new_save_err:
-                    error_text += f'. Can able save as {new_fn} ({new_err}/{new_save_err}). Skipped'
+                    error_text += f". Can able save as {new_fn} ({new_err}/{new_save_err}). Skipped"
             self._add_message(error_text)
         save_task.df = None
 
@@ -378,17 +472,12 @@ class EtlOptions(ABC):
         """Save book data
         if asset name is None - than parse names from dataframe
         """
-        fabric = {
-            'option': AssetKind.OPTIONS,
-            'future': AssetKind.FUTURES,
-            'spot': AssetKind.SPOT
-        }
+        fabric = {"options": InstrumentKind.OPTION, "futures": InstrumentKind.FUTURE, "spot": InstrumentKind.SPOT}
         request_timestamp = book_data.request_timestamp
         asset_name = book_data.asset_name
         for asset_kind_attr in fabric:
             df = getattr(book_data, asset_kind_attr)
             if df is not None:
-                opt_path = self.get_timeframe_update_path(asset_name, fabric[asset_kind_attr],
-                                                          request_timestamp)
+                opt_path = self.get_timeframe_update_path(asset_name, fabric[asset_kind_attr], request_timestamp)
                 self.add_save_task_to_background(SaveTask(opt_path, df))
                 setattr(book_data, asset_kind_attr, None)

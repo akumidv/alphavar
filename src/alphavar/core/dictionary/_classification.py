@@ -6,9 +6,10 @@ Each axis is an independent ``StrEnum``; values stored in per-row columns are th
 declared in the schema layer (R4.4), not from a hand-rolled short code — so there is no
 ``.code``/``.value`` duality and raw data stays readable.
 
-``StrEnum`` members *are* ``str``, so ``df[Col.OPTION_RIGHT] == OptionRight.CALL`` works
+``StrEnum`` members *are* ``str``, so ``df[Term.OPTION_RIGHT] == OptionRight.CALL`` works
 directly without ``.value``.
 """
+
 import enum
 
 
@@ -19,6 +20,7 @@ class InstrumentKind(enum.StrEnum):
     Singular values, like Deribit's ``kind``. Replaces the mislabeled ``AssetKind`` /
     ``asset_type`` (which stored plural ``options``/``futures``).
     """
+
     OPTION = "option"
     FUTURE = "future"
     SPOT = "spot"
@@ -31,19 +33,9 @@ class AssetClass(enum.StrEnum):
     A property of ``asset_code`` (one asset → one class). Replaces the mislabeled
     ``AssetType`` enum (``SHARE`` → ``EQUITY``).
     """
+
     EQUITY = "equity"
     COMMODITY = "commodity"
     INDEX = "index"
     CURRENCY = "currency"
     CRYPTO = "crypto"
-
-
-@enum.unique
-class ContractKind(enum.StrEnum):
-    """Contract/product kind (column ``contract_kind``): same asset class, different
-    product or trading. Deribit ``future_combo``/``option_combo`` map to ``COMBO``.
-    """
-    VANILLA = "vanilla"
-    COMBO = "combo"
-    CSO = "cso"        # calendar spread option
-    STIR = "stir"      # short-term interest rate

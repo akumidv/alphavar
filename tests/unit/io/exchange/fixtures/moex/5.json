@@ -1,0 +1,78 @@
+{
+ "call": [
+  {
+   "delta": 0.891452,
+   "gamma": 1e-05,
+   "vega": 101.212116,
+   "theta": -9.720367,
+   "rho": 244.526348,
+   "secid": "SI58500BL6",
+   "theorprice": 19563.817203,
+   "theorprice_rub": 19563.82,
+   "last": 0.0,
+   "offer": 0.0,
+   "bid": 0.0,
+   "numtrades": 0,
+   "strike": 58500.0,
+   "volatility": 34.96,
+   "intrinsic_value": 18457.0,
+   "timed_value": 1106.82
+  },
+  {
+   "delta": 0.888332,
+   "gamma": 1e-05,
+   "vega": 103.290493,
+   "theta": -9.737535,
+   "rho": 245.743309,
+   "secid": "SI59000BL6",
+   "theorprice": 19079.676032,
+   "theorprice_rub": 19079.68,
+   "last": 0.0,
+   "offer": 0.0,
+   "bid": 0.0,
+   "numtrades": 0,
+   "strike": 59000.0,
+   "volatility": 34.32,
+   "intrinsic_value": 17957.0,
+   "timed_value": 1122.68
+  }
+ ],
+ "put": [
+  {
+   "delta": -0.108548,
+   "gamma": 1e-05,
+   "vega": 101.212116,
+   "theta": -9.720367,
+   "rho": -47.172282,
+   "secid": "SI58500BX6",
+   "theorprice": 1106.817203,
+   "theorprice_rub": 1106.82,
+   "last": 0.0,
+   "offer": 0.0,
+   "bid": 0.0,
+   "numtrades": 0,
+   "strike": 58500.0,
+   "volatility": 34.96,
+   "intrinsic_value": 0.0,
+   "timed_value": 1106.82
+  },
+  {
+   "delta": -0.111668,
+   "gamma": 1e-05,
+   "vega": 103.290493,
+   "theta": -9.737535,
+   "rho": -48.448471,
+   "secid": "SI59000BX6",
+   "theorprice": 1122.676032,
+   "theorprice_rub": 1122.68,
+   "last": 0.0,
+   "offer": 0.0,
+   "bid": 0.0,
+   "numtrades": 0,
+   "strike": 59000.0,
+   "volatility": 34.32,
+   "intrinsic_value": 0.0,
+   "timed_value": 1122.68
+  }
+ ]
+}

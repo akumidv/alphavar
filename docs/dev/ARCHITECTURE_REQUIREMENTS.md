@@ -10,65 +10,82 @@
 > [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md). The remediation backlog is maintained
 > outside this repository, alongside `ALPHAVAR_NAMING.md`.
 
-## R0. Package layout: domain-first, then functional (target)
+## R0. Package layout: domain-first, then by layer, then by function
 
 `alphavar` will grow beyond options/futures (equities, bonds, …). The top-level split is
-therefore **by domain**, and *within* a domain by function (layer). A thin domain-neutral
-base sits under the domains. This is the target layout; the current tree
-(`options_lib`, `options_etl`, plus functional packages) migrates toward it.
+**by domain**; *inside* a domain the split is **by layer, then by function within the
+pure-logic layer**. A thin domain-neutral base sits under the domains.
 
 ```
 alphavar/
   core/        # domain-NEUTRAL base: shared dictionary registry, normalization,
                #   base entities, schema mixins, path-safety. No domain math.
   io/          # data infrastructure, domain-neutral: provider/, exchange/, messanger/
-  options/     # DOMAIN: options + futures (today's options_lib + options_etl, merged).
-               #   Inside, by function: dictionary/ enrichment/ chain/ analytic/ chart/
-               #   etl/ entities/ — plus the facade (Option and its components).
-  equity/      # future domain (own math)
+  options/     # DOMAIN: options + futures. Inside, BY LAYER then function:
+               #   <name>_class.py   — facade (Option + its components), flat at the domain
+               #                       root; stateful, holds OptionsData / the provider.
+               #   dictionary/ entities/ schemas/
+               #                     — domain foundation: term vocabulary, entities,
+               #                       validation contracts (used by every layer).
+               #   lib/              — pure computational logic (DataFrame in/out, no I/O;
+               #                       the Polars-port target, R8), by function:
+               #                       analytic/ chain/ chart/ enrichment/ normalization/
+               #   etl/              — I/O orchestration (uses io/ providers).
+  spot/        # future domain (own math, same internal shape)
   bond/        # future domain
 ```
 
 - **Why domain-first:** the math of options ≠ equities ≠ bonds; keeping each domain's
   logic, ETL and analytics together makes "add a new asset class = add a package"
   true, and a domain is visible from the tree (screaming architecture).
+- **Why layer-then-function inside a domain:** the three-layer separation (R1) is made
+  physical, so the boundary is visible in the tree and enforceable by import rules. The
+  facade (stateful classes) sits flat at the domain root; the pure-logic layer is the
+  `lib/` package and is organized by function inside it; `etl/` is the I/O-orchestration
+  layer. `dictionary/`/`entities/`/`schemas/` are the shared domain foundation that every
+  layer depends on, so they sit at the domain root, above `lib/`.
+- **`lib/` is pure:** functions are `DataFrame` in → `DataFrame` out, with no I/O, no
+  network, no provider/exchange imports, no facade imports, no global mutable state. This
+  is what makes it the strategic Polars-port target (R8) and independently extractable.
+  Import direction inside a domain is one-way: facade → `lib/` → (data via injected
+  provider from `io/`); `etl/` orchestrates I/O on top.
 - **What stays neutral (not in a domain):** `core/` (shared identity/dictionary,
   normalization, base entities — see R4.x; "core + domain extensions") and `io/`
   (an exchange returns options, futures, and tomorrow equities — it is infrastructure,
   not a domain).
 - **Naming:** the first domain keeps the recognizable name `options` (not
   `derivatives`), package `alphavar.options`. This aligns with the family pattern
-  recorded in `ALPHAVAR_NAMING.md` (`alphavar.<domain>`). The legacy `options_lib` /
-  `options_etl` are the seed of this domain package, just named by the narrow concretes;
-  they fold into `alphavar.options` (logic) and `alphavar.options.etl`.
-- The three-layer separation (R1) holds **inside each domain**: facade → pure logic →
-  data (via injected provider from `io/`).
+  recorded in `ALPHAVAR_NAMING.md` (`alphavar.<domain>`).
+- **Every domain repeats this internal shape** (`<facade>_class.py` + `dictionary/`
+  `entities/` `schemas/` + `lib/` + `etl/`), so the layer of any module is readable from
+  its path regardless of domain.
 
 ## R1. Three-layer separation (core invariant)
 
 ```
-alphavar facade (stateful)  →  options_lib (pure functions)  →  provider/exchange (I/O)
+domain facade (stateful)  →  <domain>/lib (pure functions)  →  io.provider, io.exchange (I/O)
 ```
 
-1. **`src/alphavar/` (facade layer)** — stateful classes only: `Option`, `OptionData`,
-   `OptionEnrichment`, `OptionChain`, `OptionAnalytic`, `ChartClass`. They hold
-   DataFrames, the provider reference, and request parameters. They contain **no
-   computational business logic** — they orchestrate and delegate.
-2. **`src/alphavar/options_lib/` (logic layer)** — pure, stateless functions and
-   Pydantic entities: `DataFrame` in → `DataFrame` out. **No I/O, no network, no
-   provider/exchange imports, no global mutable state.**
-3. **`src/alphavar/provider/` + `src/alphavar/exchange/` (data layer)** — the only place
-   where I/O happens (files, HTTP). Exchanges implement `AbstractProvider` (via
-   `AbstractExchange`).
+1. **Facade layer — `src/alphavar/<domain>/*_class.py`** (e.g.
+   `options/option_class.py`, `options/chain_class.py`): stateful classes only —
+   `Option`, `OptionsData`, `OptionsEnrichment`, `OptionsChain`, `OptionsAnalytic`,
+   `ChartClass`. They hold DataFrames, the provider reference, and request parameters.
+   They contain **no computational business logic** — they orchestrate and delegate.
+2. **Logic layer — `src/alphavar/<domain>/lib/`** (e.g. `options/lib/`): pure, stateless
+   functions and Pydantic entities: `DataFrame` in → `DataFrame` out. **No I/O, no
+   network, no `io` (provider/exchange) imports, no facade imports, no global mutable
+   state.**
+3. **Data layer — `src/alphavar/io/provider/` + `src/alphavar/io/exchange/`** — the only
+   place where I/O happens (files, HTTP); domain-neutral infrastructure (R0). Exchanges
+   implement `AbstractProvider` (via `AbstractExchange`).
 
 Dependency direction is one-way: facade → logic → (data via injected provider).
-`options_lib` must never import from `alphavar` facade modules, `provider`, or
-`exchange`.
+`<domain>/lib` must never import from the domain facade modules or from `io`.
 
 ## R2. Provider pattern
 
 - Every data source implements `AbstractProvider`
-  (`provider/_abstract_provider_class.py`): `get_assets_list`,
+  (`io/provider/_abstract_provider_class.py`): `get_assets_list`,
   `get_asset_history_years`, `load_options_history`, `load_options_book`,
   `load_futures_history`, `load_futures_book`, `load_options_chain`.
 - File-based sources extend `AbstractFileProvider`; HTTP exchanges extend
@@ -119,20 +136,26 @@ new provider, no caller changes" rule.
 
 ## R3. Facade composition
 
-- `Option` aggregates components that all share a single `OptionData` instance
+- `Option` aggregates components that all share a single `OptionsData` instance
   (dependency injection of shared state). New capability areas (pricer, forecast,
-  validation) follow the same pattern: a component class taking `OptionData` in its
+  validation) follow the same pattern: a component class taking `OptionsData` in its
   constructor, exposed as an attribute of `Option`.
+- **Model-factory pattern.** A capability area that offers *interchangeable algorithms*
+  exposes them through a pure-`lib` factory: an abstract base + a name→class registry + a
+  `make_*` selector (instance pass-through; unknown name → `ValueError`, catalogued-but-unbuilt
+  → `NotImplementedError`). Adding an algorithm = a subclass + a registry entry, no caller
+  change. Established by smile (`make_smile_model`); forecast generalizes it to three orthogonal
+  axes — target × process × engine — see [ADR 0002](decisions/0002-forecast-model-factory-axes.md).
 
 ## R4. Data dictionary discipline
 
 - DataFrame column names, option types, price statuses, asset kinds, timeframes, and
   currencies are referenced **only** through the enums in
-  `options_lib/dictionary/` (`OptionsColumns`, `FuturesColumns`, `SpotColumns`,
+  `options/dictionary/` (`OptionsColumns`, `FuturesColumns`, `SpotColumns`,
   `OptionsType`, `Timeframe`, …). String literals for columns are forbidden.
 - A new computed column requires: an `OptionsColumns` entry, the pure function in
-  `options_lib/enrichment/`, an entry in `OPTION_COLUMNS_DEPENDENCIES` when it depends
-  on other columns, and wiring in `OptionEnrichment`.
+  `options/lib/enrichment/`, an entry in `OPTION_COLUMNS_DEPENDENCIES` when it depends
+  on other columns, and wiring in `OptionsEnrichment`.
 
 ### R4.1 Naming: singular vs plural for `option`/`future`
 
@@ -159,8 +182,9 @@ classes are *the options market* / *the futures market* — established industry
 So the plural is the correct domain name, and it applies to **all identifier kinds**,
 not just variables:
 
-- **Packages / directories**: `options_lib`, `options_etl` (plural). A new asset-class
-  area follows suit.
+- **Packages / directories**: the domain package is plural (`options`; a future
+  `equity`/`bond`), as are collection subpackages (`entities/`). A new asset-class area
+  follows suit.
 - **Files / modules**: name by the entity in its domain-correct form
   (`option_class.py` describes a single `Option` *instrument* → singular is fine;
   a module about the options *dataset/market* uses plural).
@@ -244,6 +268,15 @@ alongside our own derived one. Timestamps follow the same split:
 (Deribit `creation` vs MOEX `update` are different venue times conflated into
 `exch_timestamp` today, mirroring the mark/theor case; splitting them is deferred.)
 
+**Timestamp resolution — milliseconds at most, never nanoseconds.** Every datetime the
+library stores (in parquet and in memory) is at **millisecond resolution or coarser**;
+rounding down to **one second is acceptable** — 1 s is the minimum analysis timeframe
+(the normalized `timestamp` is already rounded to 1 s). Sub-second precision carries no
+analytical value here, so **do not add code to preserve nanoseconds** — let parquet's
+default `ns → ms` coercion stand (don't pass `version="2.6"` or similar). When
+round-tripping timestamps through storage, compare *instants*, not the exact dtype unit
+(`s` and `ms` differ as raw integers but denote the same moment).
+
 **3. Raw pre-transform values (`_raw` suffix) — narrow, only where we mutate.**
 A `<col>_raw` column preserves an exchange value **before an irreversible transform we
 apply**, so the transform can be reverted/recomputed. It is **not** a mirror of every
@@ -267,31 +300,37 @@ is the normalization), so they get the unprefixed names; raw venue data is expli
 settlement = official EOD price). The old single `exchange_mark_price` had a typo
 (`exhchange_…`) and conflated layers. Migration is covered by the backlog (T23.6).
 
-### R4.3 Single entity registry — one name per concept, everywhere
+### R4.3 Single term registry — one name per concept, everywhere
 
-There is **one** registry of entity names (the column dictionary, `Col` in
-`core/dictionary/`). A concept has exactly one canonical name there, and that name is
-**the only** spelling used for it across the whole codebase — not just DataFrame
-columns:
+There is **one** registry of data terms (the **term dictionary** — `Term` in
+`core/dictionary/`, `OptionsTerm` in the domain). A *term* is the canonical name of a data
+concept; the registry is **not** a list of columns — a column is only one of a term's uses.
+A concept has exactly one term there, and that term is **the only** spelling used for it
+across the whole codebase, in every position:
 
-1. **DataFrame columns** — referenced only via the registry (`Col.STRIKE`), never as a
+1. **DataFrame columns** — referenced only via the registry (`Term.STRIKE`), never as a
    string literal. (Existing R4 rule, now part of the registry contract.)
-2. **Variables, parameters, attributes** — a variable holding one concept is named after
-   its registry key: `asset_code` (not `symbol`/`code`/`ac`), `exch_symbol`,
-   `expiration_date`. A collection is the plural (`asset_codes`). The function
-   parameter that receives a strike is `strike`, etc.
-3. **Function names that act on / produce a column** — encode the registry name of the
-   column they read or write:
-   - producing column `X` → `add_<x>` / `get_<x>` / `calc_<x>` (e.g. `add_intrinsic_value`
-     produces `Col.INTRINSIC_VALUE`; `get_price_status` returns `Col.PRICE_STATUS`).
-   - the verb says the effect (`add_` mutates/returns the frame with the column, `get_`
-     returns the series/value, `calc_` is the pure computation), the noun is the exact
-     registry name.
-   - a function keyed to a concept must not drift from the column name (no
-     `add_timevalue` for `Col.TIMED_VALUE`).
+2. **Variables, parameters, attributes** — a variable, parameter, or attribute holding one
+   concept is named after its term, **especially in the functions that compute or modify
+   that data**: the local that holds a strike, the parameter that receives it, and the
+   column it writes are all `strike`. So `asset_code` (not `symbol`/`code`/`ac`),
+   `exch_symbol`, `expiration_date`; a collection is the plural (`asset_codes`). This binds
+   the in-code vocabulary to the in-frame/on-disk vocabulary — one term, one understanding,
+   everywhere.
+3. **Function names that handle a term — `<verb>_<term>`, never `<term>_<noun>`.** A function
+   whose job is to compute, read, or transform the value of one term is named *verb + that term*
+   — the term is the noun, a verb says what is done to it:
+   - producing term `X` → `add_<x>` / `get_<x>` / `calc_<x>` (e.g. `add_intrinsic_value`
+     produces `Term.INTRINSIC_VALUE`; `get_price_status` returns `Term.PRICE_STATUS`;
+     the implied-vol computation is `calc_iv` / `add_iv`, **not** `iv_calculation`).
+   - the verb says the effect (`add_` mutates/returns the frame with the term's column, `get_`
+     returns the series/value, `calc_` is the pure computation), the noun is the exact term.
+   - a function keyed to a concept must not drift from the term (no `add_timevalue` for
+     `Term.TIMED_VALUE`, no `iv_calc`/`compute_implied_volatility` for `Term.IV`). One term →
+     one spelling in the column, the variable, *and* the function that produces it.
 
 **Why:** the same concept must be greppable and unambiguous from column to variable to
-function to file. If `Col.TIMED_VALUE = "timed_value"`, then the column, the local var,
+function to file. If `Term.TIMED_VALUE = "timed_value"`, then the column, the local var,
 the param, and `add_timed_value` all read `timed_value`. This is what makes the rename
 discipline (asset_code, exch_symbol, exch_mark_price, …) enforceable and what lets the
 pandera schema layer (R4.4) bind to the registry by reference, not by repetition.
@@ -306,7 +345,7 @@ domain's dictionary and extend core.
 
 DataFrame schemas (pandera `DataFrameModel`s) are the validation + dataset-composition
 layer. Every schema field binds to a registry name **by reference**
-(`pa.Field(alias=Col.STRIKE)`), never by retyping the string. Shared column groups
+(`pa.Field(alias=Term.STRIKE)`), never by retyping the string. Shared column groups
 (timestamp / quote / OHLC / greeks) are **mixin** models; entity models
 (`OptionsHistory`, `FuturesHistory`, `SpotHistory`, `OptionsBook`) compose mixins +
 domain fields. Validation runs at layer boundaries (provider/exchange normalize output;
@@ -338,7 +377,9 @@ Rules:
   `OptionsColumns`), but a value in a per-row column names *one* instrument, so singular.
   **Migration:** today `AssetKind` stores plural (`"options"`/`"futures"`) in parquet and
   in the dir layout (`DERIBIT/BTC/options/…`); moving to singular requires a parquet +
-  path migration (backlog T23.6 / data migration).
+  path migration (backlog T23.6 / data migration). The full adoption — canon everywhere,
+  retiring `AssetKind`, phased rollout, and tooling — is decided in
+  [`decisions/0001-instrument-kind-canon.md`](decisions/0001-instrument-kind-canon.md).
 - **Columns are singular** (one row = one instrument's attribute): `option_right`,
   `instrument_kind`, `option_style`. **Enums are singular** too (`OptionRight` — one
   value out of a set, like `enum Color`), an intentional exception to R4.1's "plural for
@@ -352,7 +393,7 @@ Rules:
 **Axis enums are plain `StrEnum`; storage compactness is the schema's `category` dtype,
 not a hand-rolled code.** The legacy `EnumCode` (value `"option"` + short code `"o"`,
 storing `"o"` in parquet) is retired: a `StrEnum` member *is* its readable value
-(`df[Col.OPTION_RIGHT] == OptionRight.CALL` needs no `.code`/`.value`), and the
+(`df[Term.OPTION_RIGHT] == OptionRight.CALL` needs no `.code`/`.value`), and the
 pandas/polars `category` dtype — declared in the pandera schema (R4.4) — gives the same
 memory/filter win automatically while keeping raw data readable (`"call"`, not `"c"`).
 So: human values in data, no manual codes, `category` dtype for the categorical columns.
@@ -390,7 +431,7 @@ file): constant string columns `kind`/`symbol`/`option_type` alone were ~8.8 MB 
    quotes — `metadata`/reference parquet under the instrument's data folder (e.g.
    `{EXCHANGE}/{asset_code}/_meta.parquet`, class/currency references at the exchange or
    asset root), written/updated by ETL. On load it is read into a Pydantic entity
-   (`InstrumentMeta`, `AssetMeta`, `RatesTable`, …) carried by `OptionData`/the facade —
+   (`InstrumentMeta`, `AssetMeta`, `RatesTable`, …) carried by `OptionsData`/the facade —
    **never** merged back as constant columns. Analytics that need an attribute read it
    from the entity (or the library joins on demand for a specific computation).
 
@@ -438,18 +479,18 @@ first-class, queryable thing rather than redundant column noise.
 - **Strategic direction: Polars is the target dataframe engine** (Rust core; enables
   interop with related Rust projects). pandas is the current engine; the codebase must
   not deepen its pandas lock-in.
-- The column dictionary (`options_lib/dictionary/`) is **engine-neutral**: it defines
+- The term dictionary (`options/dictionary/`) is **engine-neutral**: it defines
   plain string names and engine-agnostic metadata. It must not import pandas/polars
   types as part of its public contract (engine-specific dtype mapping lives next to the
   schemas, not in the name registry).
 - DataFrame schemas (pandera) are defined per engine behind a common naming registry:
   `pandera.pandas` today, `pandera.polars` on migration — column names and checks carry
   over unchanged.
-- New code in `options_lib` should prefer constructs with direct polars equivalents
+- New code in `options/lib` should prefer constructs with direct polars equivalents
   (column-wise expressions, joins, group-by aggregations) and avoid hard-to-port idioms
   (row-wise `df.apply`, implicit index reliance, `inplace=True` mutation chains).
 - Engine selection goes through the existing `DataEngine` enum
-  (`provider/_provider_entities.py`); providers receive the engine explicitly.
+  (`io/provider/_provider_entities.py`); providers receive the engine explicitly.
 
 ---
 

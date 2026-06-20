@@ -1,9 +1,10 @@
 """Helpers over column-name registries (R4.3).
 
 A registry is a plain class whose UPPER_CASE attributes are ``str`` column names
-(see ``Col``). These helpers introspect it without depending on enum machinery.
+(see ``Term``). These helpers introspect it without depending on enum machinery.
 """
-from typing import Iterable
+
+from collections.abc import Iterable
 
 
 def column_names(*registries: type) -> list[str]:

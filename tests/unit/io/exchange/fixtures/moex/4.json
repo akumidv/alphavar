@@ -1,0 +1,156 @@
+[
+ {
+  "optionseries_code": "SI-6.26M180626XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIM6",
+  "series_type": "Q",
+  "expiration_date": "2026-06-18",
+  "central_strike": 73000.0,
+  "call": {
+   "volume_rub": 3152527000.0,
+   "volume_contracts": 42127,
+   "openposition": 951034,
+   "oichange": -25878
+  },
+  "put": {
+   "volume_rub": 1741047500.0,
+   "volume_contracts": 24170,
+   "openposition": 341446,
+   "oichange": -5764
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ },
+ {
+  "optionseries_code": "SI-9.26M250626XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIU6",
+  "series_type": "W",
+  "expiration_date": "2026-06-25",
+  "central_strike": 75000.0,
+  "call": {
+   "volume_rub": 471430500.0,
+   "volume_contracts": 6211,
+   "openposition": 24078,
+   "oichange": 8040
+  },
+  "put": {
+   "volume_rub": 581336500.0,
+   "volume_contracts": 7913,
+   "openposition": 34156,
+   "oichange": 12492
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ },
+ {
+  "optionseries_code": "SI-9.26M020726XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIU6",
+  "series_type": "W",
+  "expiration_date": "2026-07-02",
+  "central_strike": 75000.0,
+  "call": {
+   "volume_rub": 0.0,
+   "volume_contracts": 0,
+   "openposition": 0,
+   "oichange": 0
+  },
+  "put": {
+   "volume_rub": 658500.0,
+   "volume_contracts": 9,
+   "openposition": 1226,
+   "oichange": 18
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ },
+ {
+  "optionseries_code": "SI-9.26M160726XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIU6",
+  "series_type": "M",
+  "expiration_date": "2026-07-16",
+  "central_strike": 75000.0,
+  "call": {
+   "volume_rub": 229172500.0,
+   "volume_contracts": 2992,
+   "openposition": 89924,
+   "oichange": 4866
+  },
+  "put": {
+   "volume_rub": 108958000.0,
+   "volume_contracts": 1495,
+   "openposition": 28758,
+   "oichange": 1462
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ },
+ {
+  "optionseries_code": "SI-9.26M200826XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIU6",
+  "series_type": "M",
+  "expiration_date": "2026-08-20",
+  "central_strike": 75000.0,
+  "call": {
+   "volume_rub": 0.0,
+   "volume_contracts": 0,
+   "openposition": 878,
+   "oichange": 0
+  },
+  "put": {
+   "volume_rub": 0.0,
+   "volume_contracts": 0,
+   "openposition": 6,
+   "oichange": 0
+  },
+  "updatetime": "2026-06-17T23:49:00"
+ },
+ {
+  "optionseries_code": "SI-9.26M170926XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIU6",
+  "series_type": "Q",
+  "expiration_date": "2026-09-17",
+  "central_strike": 75000.0,
+  "call": {
+   "volume_rub": 301034000.0,
+   "volume_contracts": 3896,
+   "openposition": 162768,
+   "oichange": 4450
+  },
+  "put": {
+   "volume_rub": 90076000.0,
+   "volume_contracts": 1252,
+   "openposition": 49054,
+   "oichange": 1618
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ },
+ {
+  "optionseries_code": "SI-12.26M171226XA",
+  "asset_code": "SI",
+  "asset_type": "futures",
+  "futures_code": "SIZ6",
+  "series_type": "Q",
+  "expiration_date": "2026-12-17",
+  "central_strike": 77000.0,
+  "call": {
+   "volume_rub": 0.0,
+   "volume_contracts": 0,
+   "openposition": 8,
+   "oichange": 0
+  },
+  "put": {
+   "volume_rub": 70000.0,
+   "volume_contracts": 1,
+   "openposition": 20,
+   "oichange": 2
+  },
+  "updatetime": "2026-06-17T23:50:00"
+ }
+]

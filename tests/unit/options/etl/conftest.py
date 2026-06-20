@@ -5,8 +5,9 @@ import pandas as pd
 import pytest
 from cachetools import TTLCache, cached
 
-from alphavar.exchange import DeribitExchange
-from alphavar.options_lib.dictionary import AssetKind, Timeframe
+from alphavar.core.dictionary import InstrumentKind
+from alphavar.io.exchange import DeribitExchange
+from alphavar.options.dictionary import Timeframe
 from alphavar.options.etl.etl_class import AssetBookData, EtlOptions
 
 
@@ -20,22 +21,23 @@ class TestEtl(EtlOptions):
         """Stop saving test tasks during tests"""
 
     def get_symbols_books_snapshot(self, asset_name: str, request_timestamp: pd.Timestamp) -> AssetBookData:
-        return AssetBookData(asset_name=asset_name, request_timestamp=request_timestamp, option=None, future=None,
-                             spot=None)
+        return AssetBookData(
+            asset_name=asset_name, request_timestamp=request_timestamp, options=None, futures=None, spot=None
+        )
 
 
-@pytest.fixture(name='etl_options')
+@pytest.fixture(name="etl_options")
 def etl_options_fixture(deribit_client, data_path):
     """Fixture for Test ETL"""
     etl = TestEtl(deribit_client, None, Timeframe.EOD, data_path)
     return etl
 
 
-@pytest.fixture(name='fut_year_symbols')
+@pytest.fixture(name="fut_year_symbols")
 @cached(cache=TTLCache(maxsize=1, ttl=60 * 60))
 def year_symbols_fixture(etl_history):
     """
     Fixture for getting years from asset history.
     """
 
-    return etl_history._get_asset_history_years(AssetKind.FUTURES)
+    return etl_history._get_asset_history_years(InstrumentKind.FUTURE)

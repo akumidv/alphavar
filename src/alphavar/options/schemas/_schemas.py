@@ -1,6 +1,6 @@
 """pandera schemas for the options/futures domain (R4.4).
 
-Every field binds to the registry **by reference** (``alias=OptionsCol.X``) — names are
+Every field binds to the registry **by reference** (``alias=OptionsTerm.X``) — names are
 never restated as string literals. Shared column groups are mixin models; entity models
 compose mixins + domain fields.
 
@@ -16,7 +16,7 @@ import pandera.pandas as pa
 
 from alphavar.core.dictionary import InstrumentKind
 from alphavar.options.dictionary import OptionRight, OptionStyle
-from alphavar.options.dictionary import OptionsCol as C
+from alphavar.options.dictionary import OptionsTerm as C
 
 # Classification columns are category dtype (R4.5: compactness via dtype, not codes);
 # their allowed values are the StrEnum members.
@@ -39,7 +39,9 @@ class TimestampMixin(_Base):
 
 
 class QuoteMixin(_Base):
-    price: float = pa.Field(alias=C.PRICE, nullable=False)
+    # `price` is our model output (interim-sourced from `exch_price`); nullable because a
+    # row may have no representative quote yet, and the clean accessor drops those later.
+    price: float | None = pa.Field(alias=C.PRICE, nullable=True)
     ask: float | None = pa.Field(alias=C.ASK, nullable=True)
     bid: float | None = pa.Field(alias=C.BID, nullable=True)
 
@@ -52,7 +54,7 @@ class OHLCMixin(_Base):
 
 
 class GreeksMixin(_Base):
-    iv: float | None = pa.Field(alias=C.IV, nullable=False)
+    iv: float | None = pa.Field(alias=C.IV, nullable=True)
     delta: float | None = pa.Field(alias=C.DELTA, nullable=True)
     gamma: float | None = pa.Field(alias=C.GAMMA, nullable=True)
     vega: float | None = pa.Field(alias=C.VEGA, nullable=True)
@@ -93,9 +95,10 @@ class OptionsHistory(IdentityMixin, TimestampMixin, QuoteMixin, OHLCMixin, Greek
 
 
 class FuturesHistory(IdentityMixin, TimestampMixin, QuoteMixin, OHLCMixin):
-    """Parsed futures history. Mandatory key: (asset_code, expiration_date, timestamp)."""
+    """Parsed futures history. Key: (asset_code, expiration_date, timestamp) — but PERPETUAL
+    futures never expire, so `expiration_date` is nullable (NaT)."""
 
-    expiration_date: pd.Timestamp = pa.Field(alias=C.EXPIRATION_DATE, nullable=False)
+    expiration_date: pd.Timestamp | None = pa.Field(alias=C.EXPIRATION_DATE, nullable=True)
 
 
 class SpotHistory(IdentityMixin, TimestampMixin, QuoteMixin, OHLCMixin):
