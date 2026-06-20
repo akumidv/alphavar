@@ -18,7 +18,9 @@ tree, and the learn loop. Attach/realign guide: [`_forge/keystone/BOOTSTRAP.md`]
   **domain-concept → function map**, no USAGE `tools/` for a package).
 - **Agents (roles):** [`architect`](_forge/agents/architect/README.md) (design/docs/ADRs) ·
   [`engineer`](_forge/agents/engineer/README.md) (code/tests) → role definitions in
-  [`_forge/keystone/roles/`](_forge/keystone/roles/).
+  [`_forge/keystone/roles/`](_forge/keystone/roles/). **Declare the active agent** before
+  doing work and restate it on switch (`🧭 agent: <name> — <focus>`) — see
+  [Role declaration](_forge/keystone/roles/README.md#role-declaration-announce-the-active-agent).
 - **Guardrails (by language):** [`_common`](_forge/keystone/guardrails/_common.md) +
   [`python`](_forge/keystone/guardrails/python.md). **Profile (opted in):**
   [`quant`](_forge/keystone/profiles/quant.md) (numerics).

@@ -10,6 +10,16 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/_forge/keystone/hooks/session-start-agent.py\""
+          }
+        ]
+      }
     ]
   }
 }
