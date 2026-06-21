@@ -38,7 +38,7 @@ def test_round_trip_preserves_asset_meta_and_tz_aware_history(tmp_path):
     meta = AssetMeta(asset_code="BTC", instrument_kind="option", currency="USD", title="Bitcoin")
     history = _history()
 
-    write_reference(asset_dir, meta, history)
+    write_reference(meta, history, asset_dir)
     loaded_meta, loaded_history = read_reference(asset_dir)
 
     assert loaded_meta == meta
@@ -62,7 +62,7 @@ def test_files_land_at_the_asset_root(tmp_path):
     import os
 
     asset_dir = str(tmp_path / "BTC")
-    write_reference(asset_dir, AssetMeta(asset_code="BTC"), _history())
+    write_reference(AssetMeta(asset_code="BTC"), _history(), asset_dir)
     assert os.path.exists(asset_meta_path(asset_dir))  # _asset.json
     assert os.path.exists(contract_history_path(asset_dir))  # _meta.parquet
 
@@ -70,9 +70,9 @@ def test_files_land_at_the_asset_root(tmp_path):
 def test_write_then_append_then_rewrite(tmp_path):
     """The stored history is the input an ETL append-on-change folds the next snapshot into."""
     asset_dir = str(tmp_path / "BTC")
-    write_reference(asset_dir, AssetMeta(asset_code="BTC"), _history())
+    write_reference(AssetMeta(asset_code="BTC"), _history(), asset_dir)
     _, history = read_reference(asset_dir)
     grown = append_on_change(history, _snap([["B", "european"]]), T2, KEY, ATTR)  # new key B
-    write_reference(asset_dir, AssetMeta(asset_code="BTC"), grown)
+    write_reference(AssetMeta(asset_code="BTC"), grown, asset_dir)
     _, reloaded = read_reference(asset_dir)
     assert set(reloaded[OptionsTerm.EXCH_SYMBOL]) == {"A", "B"}

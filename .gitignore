@@ -21,3 +21,7 @@ node_modules/
 docs/phd/
 .gitmodules
 *.svg
+
+# secrets
+*.env
+!*.env.example

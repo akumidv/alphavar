@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/_forge/keystone/hooks/codex-hook.py\" role-on-code",
+            "statusMessage": "Checking keystone role switch"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/_forge/keystone/hooks/codex-hook.py\" analysis-guard",
+            "statusMessage": "Checking analysis-before-mutation"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/_forge/keystone/hooks/codex-hook.py\" session-start",
+            "statusMessage": "Loading keystone session reminders"
+          }
+        ]
+      }
+    ]
+  }
+}

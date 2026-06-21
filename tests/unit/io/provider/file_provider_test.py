@@ -113,7 +113,7 @@ def test_load_reference_round_trip(tmp_path):
     (exchange_dir).mkdir()
     provider = TestFileProvider("DERIBIT", str(tmp_path))
     meta = AssetMeta(asset_code="BTC", instrument_kind="option", currency="USD")
-    write_reference(str(exchange_dir / "BTC"), meta, pd.DataFrame())
+    write_reference(meta, pd.DataFrame(), str(exchange_dir / "BTC"))
 
     asset, _history = provider.load_reference("BTC")
     assert asset == meta

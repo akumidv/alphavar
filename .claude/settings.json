@@ -9,6 +9,19 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR/_forge/keystone/hooks/git-commit-guard.py\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/_forge/keystone/hooks/role-on-code.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/_forge/keystone/hooks/analysis-guard.py\""
+          }
+        ]
       }
     ],
     "SessionStart": [

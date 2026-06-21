@@ -1,6 +1,8 @@
 ---
 name: data-sources
 description: Fetch options/futures market data from supported exchanges (Deribit, Binance, MOEX) with alphavar — snapshot the options book, resolve instrument kinds, and understand each venue's symbol scheme and field→column mapping. Use when a user asks to pull market data from a venue, normalize exchange fields, or parse an instrument symbol.
+when_to_use: Use when a user asks to pull market data from a venue, normalize exchange fields, or parse an instrument symbol.
+owner: alphavar
 ---
 
 # Fetch & normalize exchange data in alphavar

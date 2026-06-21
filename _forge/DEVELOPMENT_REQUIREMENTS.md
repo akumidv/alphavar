@@ -129,3 +129,44 @@ record lives in `TASKS.md`, verification of math/architecture lives in the **D2 
 (`4VERIFY`), and commits remain governed by **D5**. The concrete record template and the
 step-by-step procedure are the [`track-task`](skills/track-task.md) skill;
 follow it rather than re-inventing a format.
+
+## D7. Signature convention — subject first, then how
+
+> The general rule lives in the keystone guardrail
+> [`API shape — subject first`](../_forge/keystone/guardrails/_common.md#api-shape--subject-first)
+> (binds every project/role). D7 **pins the alphavar specifics** below — do not restate the floor.
+
+Every callable — function, method, constructor — takes **the data it acts on as the first
+parameter** (the *subject*: a DataFrame in the common case, or another object — a `Series`,
+an array, a result, a source handle). Parameters **after** the first either say *what to do*
+(modifiers/options) or supply *additional data*. Read every signature as `f(subject, *rest)`.
+
+- **Why:** one uniform shape across the codebase (mirrors the `df.method(...)` idiom and the
+  `OPTION_COLUMN_DEPENDENCIES` enrichment style), so a reader/assembler knows *what a call
+  operates on* from position alone — no per-parameter guessing.
+- **Result-chain payoff:** a producer's input edge is then simply its **first parameter**, so
+  the [`core.disc`](../src/alphavar/core/disc.py) surface reads `inputs` positionally and only
+  the **exceptions** are declared (`consumes=` for an alternatives slot / several inputs, or
+  `consumes=[]` for a *source* with no upstream edge). See
+  [`design/result-chain/disc-derivation.md`](design/result-chain/disc-derivation.md).
+
+**What "the subject" is, by callable shape** (so `f(subject, *rest)` is unambiguous; grounded in
+the ecosystem conventions audited 2026-06-21):
+
+- **Transform** (`df + params → df` / a reduction) — subject = **the data acted on**, first:
+  `price_series(df, *, source=…)`.
+- **Method** — subject = **`self`** (the bound data); D7 governs only the *explicit* data params:
+  if a method takes data, it comes first **after** `self` (`reapply_reference(self, df)`).
+- **Reader / loader / source** — there is *no data yet*, so the subject is the **location / handle**
+  it acts on → **location-first** (`read_parquet(path)`, `load(file)`; a `load` node's `OptionsData`
+  handle is its first param). This is why a source is location-first *and* D7-consistent.
+- **Writer / persister** — the data already exists and **is** the subject; the destination is a
+  *modifier* → **data-first** (`json.dump(obj, fp)` / `pickle.dump(obj, file)` style — **not**
+  `np.save`'s destination-first outlier), or better, a **method on the data** (`df.to_parquet(path)`).
+- **Factory** (`make_*`, constructor-from-spec) — builds an object from a **selector/spec**, it does
+  not transform a subject → **selector-first** (`make_engine(name, *, …)`); **exempt** from
+  subject-first.
+
+- **Scope:** applies to all new/edited callables. Pre-existing signatures are brought into
+  line opportunistically when touched, not in a sweep (the 2026-06-21 audit flagged
+  `schemas.validate`, `etl._fold_reference`, `reference.write_reference` as deferred flips).

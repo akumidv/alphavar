@@ -35,8 +35,8 @@ def contract_history_path(asset_dir: str) -> str:
     return os.path.join(asset_dir, META_FILENAME)
 
 
-def write_reference(asset_dir: str, asset: AssetMeta, history: pd.DataFrame) -> None:
-    """Persist the asset-level meta + contract-level SCD history under ``asset_dir``."""
+def write_reference(asset: AssetMeta, history: pd.DataFrame, asset_dir: str) -> None:
+    """Persist the asset-level meta + contract-level SCD history under ``asset_dir`` (D7: data-first)."""
     os.makedirs(asset_dir, exist_ok=True)
     with open(asset_meta_path(asset_dir), "w", encoding="utf-8") as fh:
         fh.write(asset.model_dump_json())

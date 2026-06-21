@@ -25,6 +25,14 @@
   *why* and a *revisit-if* condition.
 - **[`TASKS.md`](TASKS.md)** — the **design backlog** (separate from the implementation backlog
   `agents/_dev/TASKS.md`): each task = a design decision to make, not code.
+- **[`v1-price-slice.md`](v1-price-slice.md)** — the **V1-lc implementation spec**: the first concrete
+  contract path `load → price_series → forecast_distribution` as three autonomous producers (the
+  proving slice for A4a/Inp/Load/A5 before generalizing).
+- **[`a9c-lib-inventory.md`](a9c-lib-inventory.md)** — **A9c**: every `options/lib/` function classified
+  Shape 1 / Shape 2 / kernel; the target list for the contract work + the surfaced design points.
+- **[`disc-derivation.md`](disc-derivation.md)** — refines **A2**: the producer contract is **derived**
+  from the function (signature + return type), not re-declared in `register(...)`; schema lives in the
+  type. Supersedes the `flow-module.md` `register(kind=…, inputs=…, params=…)` sketch.
 
 ## Goal
 
@@ -127,13 +135,17 @@ Detail (with leanings/decisions) lives in the layer files. Status: *decided* / *
 - **A0** Module name & home — *DECIDED: `alphavar.flow`* (+ `composer` inside).
 - **A1** `ResultMeta` shared type? — *RESOLVED by removal* (no meta entity; contract describes scalars).
 - **A2** How formal is the contract/registry — *decided: Registry = Python code in flow* (binds
-  functions + pandera schemas; type-safe). Open: param-spec format & acyclicity checking.
+  functions + pandera schemas; type-safe). *Refined 2026-06-21: the contract is **derived** from the
+  function (signature + return type), not re-declared — see [`disc-derivation.md`](disc-derivation.md).*
+  Open: param-spec format & acyclicity checking.
 - **A9** Layering (lib functional / class / flow) + **two shapes** of a lib function (Shape 1
   enrichment via column-deps; Shape 2 new-kind frame) — *principle, accepted*.
 - **A3** Lineage refs vs embed — *COLLAPSED into `flow.RunRecord`* (no lineage on results).
 - **A4** Interchange frame form — *leaning tidy* (+ keep wide `to_frame()` as ergonomic render).
-- **A5** Where neutral terms live — *pending* (`core.dictionary`, new registry vs extend `Term`).
-- **A6** Input-contract expressiveness ("board over period P") — *pending*.
+- **A5** Where neutral terms live — *DECIDED: neutral registry in `core.dictionary`, built in
+  **Phase 0*** (before the second domain; A5-now).
+- **A6** Input-contract expressiveness ("board over period P") — *pending; **Phase 2*** (tied to the
+  Layer-B planner, not on the Phase-0 critical path).
 - **A7** `flow` non-privileged; external/manual assembly works off the contract — *principle, accepted*.
 - **A8** A `kind` is a contract, **not** forced decomposition — consolidated producers stay, reuse at
   the lib level, intermediate interchange is opt-in (efficiency) — *principle, accepted*.
@@ -142,10 +154,34 @@ Detail (with leanings/decisions) lives in the layer files. Status: *decided* / *
 plain function, or **declaratively** as a `Plan` (a "transformation model" — the chain as data) that
 `flow` interprets. Same contract for all three. See [`flow-module.md`](flow-module.md).
 
-**Current focus / next:** prototype the contract on the **price vertical slice** (`price_series →
-forecast_distribution`) — it is ~90% there (needs only `to_interchange()` + a pandera schema +
-registering `price_series`). No behavior change to the existing facade. See the gap analysis &
-examples in [`flow-module.md`](flow-module.md).
+**Priority reframe (2026-06-21, owner) — build order:** the **product is the lib/class contracts**,
+not `flow`. `flow` is **one of three** consumers of the same descriptions — `flow` auto-assembly, a
+**developer** calling steps by hand, an **AI agent** assembling a chain. So the order is **(Phase 0)
+options lib/class contracts → (Phase 1) other domains → (Phase 2) `flow` itself**; `flow`'s
+implementation is **not a priority** — its design matters now only as it **shapes the lib/class code**
+so chains compose without it. New contract requirement: contracts are **self-describing & discoverable**
+(`kind → I/O` as readable data) because the agent/manual caller are first-class. **Test of done:**
+`price_series → forecast` is assemblable by hand / by an agent **without importing `flow`**.
+
+**Strict component autonomy (2026-06-21, owner — core):** a component (lib fn or domain class, incl.
+etl/exchange) knows **only its own contract** — the inputs it consumes (by kind/schema) and what it
+produces — and **never knows or invokes its upstream producer**. So there is **no `compute-if-absent` /
+resolver inside lib or class**; composition (wire output→input, compute a missing prerequisite) is an
+**assembler** concern done one level up by the **user / AI agent / `flow`**. Consequently T27 it.5
+factor-conditional / T35 risk / T33 portfolio build directly on the class contracts (not blocked on
+`flow`) but take their upstream frames **explicitly passed in by the caller**, not derived inside the
+component. **Data acquisition is in the same unified graph** (P-data): etl/exchange/provider expose
+**producer(s)** whose output is a canonical frame-kind (`{symbol, period → board/series}`), a node like
+any other — so an assembler can plan the whole path *including what to load*; fetch internals stay
+R1/R2. Full phasing in [`TASKS.md`](TASKS.md).
+
+**Current focus / next:** **Phase 0 V1-lc** — fully specced & decided in
+[`v1-price-slice.md`](v1-price-slice.md): the price slice `load → price_series → forecast_distribution`
+as three autonomous producers + `to_interchange()` + pandera schemas + the neutral `ResultTerm` registry
+in `core.dictionary`. `Option.forecast.price()` reduces to the `forecast_distribution` producer; the
+end-to-end convenience becomes a **minimal, contract-reading `flow` seed** (this is the one `flow` bit
+that lands in V1 — it stays *minimal* and *non-privileged*; the formal `Contract`/registry and the
+Layer-B planner remain Phase 2). Ready for implementation setup.
 
 **Layer B** ([`structure-requirements.md`](structure-requirements.md)):
 - **B1** Subject-of-analysis model — *pending*.

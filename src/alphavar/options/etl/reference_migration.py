@@ -60,7 +60,7 @@ def migrate_asset(asset_dir: str, *, apply: bool) -> bool:
     asset, history = extract_reference(df, when)
     print(f"[{'APPLY' if apply else 'DRY'}] {asset_dir}: asset_code={asset.asset_code} contracts={len(history)}")
     if apply:
-        write_reference(asset_dir, asset, history)
+        write_reference(asset, history, asset_dir)
     return True
 
 
