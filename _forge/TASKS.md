@@ -11,13 +11,17 @@ one line per task, **detail by reference**, no dates, `done` → [TASKS_ARCHIVE.
 ## Status
 
 Suite green, ruff clean. Forecast (T27) is code-complete & D2-pending; result-chain V1 (T37)
-landed. Active focus: D2 verification of the forecast math, then the forecast follow-ups and the
-P4 capability roadmap.
+landed. Active focus: D2 verification of the forecast math, architecture remediation from ADR 0004,
+then the forecast follow-ups and the P4 capability roadmap.
 
 ## Active / blocked / deferred
 
 - T27 · forecast capability area · active · engineer · D2-verify math; build factor-conditional + analogue models · [design](design/forecast/README.md)
 - T40 · pin interchange schemas for smile/surface · active · engineer · scalar-less θ output needs pinned interchange schemas · [design](design/forecast/README.md)
+- T41 · enforce pure `lib` boundary · active · architect/engineer · move reference storage out of `lib`; add architecture guard · [design](design/architecture-remediation.md)
+- T42 · pin options producer contracts · active · architect · enrichment/chain/pricer/validation/risk contracts for users/AI/flow · [design](design/architecture-remediation.md)
+- T43 · harden DataFrame transform contracts · active · engineer · fix enrichment force/drop; graph deps; reduce in-place pandas hotspots · [design](design/architecture-remediation.md)
+- T44 · finish schema/vocabulary migration · active · architect/engineer · canonical Terms/StrEnum/schemas; isolate legacy shims · [design](design/architecture-remediation.md)
 - T29 · surface fitting model (pricer) · active · architect · joint SVI-surface calibration with calendar no-arb · [design](design/domains-roadmap.md)
 - T30 · sparse/live smile-shift · active · architect · low-DoF additive-`w` shift of a prior smile; lock open Qs · [design](design/pricer/smile-shift.md)
 - T36 · implement planned `knowledge/` concepts · active · engineer · full Greeks + Sortino, then their USAGE skills · [design](design/domains-roadmap.md)

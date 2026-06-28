@@ -7,7 +7,7 @@ repository. `CLAUDE.md` points here — this is the single source of truth for a
 
 This project's AI-assist model is the **keystone** standard. Model & notation:
 [`_forge/keystone/README.md`](_forge/keystone/README.md) — three axes (**Layer**
-SHARED/LOCAL/USAGE · **Role** architect/engineer · **Project type**), the layer decision
+SHARED/LOCAL/USAGE · **Role** architect/reviewer/engineer · **Project type**), the layer decision
 tree, and the learn loop. Attach/realign guide: [`_forge/keystone/BOOTSTRAP.md`](_forge/keystone/BOOTSTRAP.md).
 
 - **Archetype / language:** `package` (a Python library) / `python` — owner: Andrei
@@ -17,15 +17,21 @@ tree, and the learn loop. Attach/realign guide: [`_forge/keystone/BOOTSTRAP.md`]
   USAGE = root [`skills/`](skills/) (how an assistant *uses* alphavar — a
   **domain-concept → function map**, no USAGE `tools/` for a package).
 - **Agents (roles):** [`architect`](_forge/agents/architect/README.md) (design/docs/ADRs) ·
+  [`reviewer`](_forge/agents/reviewer/README.md) (evidence-first architecture/risk/trade-off review) ·
   [`engineer`](_forge/agents/engineer/README.md) (code/tests) → role definitions in
   [`_forge/keystone/roles/`](_forge/keystone/roles/). **Declare the active agent** before
   doing work and restate it on switch (`🧭 agent: <name> — <focus>`) — see
   [Role declaration](_forge/keystone/roles/README.md#role-declaration-announce-the-active-agent).
+  Architecture analysis of existing code starts as `reviewer`; deeper design elaboration of
+  accepted review findings moves to `architect`, and code/test changes move to `engineer`.
 - **Guardrails (by language):** [`_common`](_forge/keystone/guardrails/_common.md) +
   [`python`](_forge/keystone/guardrails/python.md). **Profile (opted in):**
   [`quant`](_forge/keystone/profiles/quant.md) (numerics).
 - **Pipelines:** [`pre-commit`](_forge/keystone/pipelines/pre-commit.md) (tests mandatory),
   [`design-flow`](_forge/keystone/pipelines/design-flow.md),
+  draft [`system-design`](_forge/keystone/pipelines/system-design.md),
+  [`architecture-review`](_forge/keystone/pipelines/architecture-review.md),
+  draft [`security-review`](_forge/keystone/pipelines/security-review.md),
   [`code-flow`](_forge/keystone/pipelines/code-flow.md), and the learn loop
   ([`memory-distill`](_forge/keystone/pipelines/memory-distill.md) +
   [`learning`](_forge/keystone/pipelines/learning.md)).
@@ -169,7 +175,8 @@ npm run dev
   layer** (see "Dev layer — keystone" above):
   - [`keystone/`](_forge/keystone/) — the **SHARED** cross-project standard (submodule
     `ai_keystone`): the model, roles, guardrails, profiles, pipelines.
-  - [`agents/`](_forge/agents/) — this project's **agents** (`architect`, `engineer`),
+  - [`agents/`](_forge/agents/) — this project's **agents** (`architect`,
+    `reviewer`, `engineer`),
     each inheriting a keystone role + alphavar specifics.
   - `_forge/{skills,tools,memory}` — **LOCAL** dev assets. Tools = code (docstring is the
     doc; run `python -m _forge.tools.<tool>`); skills = know-how (when/why/order).

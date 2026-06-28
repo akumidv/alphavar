@@ -82,6 +82,36 @@ domain facade (stateful)  →  <domain>/lib (pure functions)  →  io.provider, 
 Dependency direction is one-way: facade → logic → (data via injected provider).
 `<domain>/lib` must never import from the domain facade modules or from `io`.
 
+### R1.1 `lib` contract shapes: explicit inputs, no hidden upstream work
+
+Every public function in `<domain>/lib` exposes one of these shapes; the shape is part of
+the function's contract and should be visible from the signature and return annotation:
+
+- **Transform:** `df + params → df` (or a row-aligned `Series`). The DataFrame being
+  transformed is the first parameter; required extra data is passed explicitly as a
+  later parameter. The function does not load, resolve, or compute its upstream inputs.
+- **Reduction / producer:** `df + params → typed result` or `df + params → tidy frame`.
+  The output has a pinned schema or result class that exposes an interchange schema.
+- **Factory:** `make_*` selectors build interchangeable algorithms from a selector/spec
+  and are exempt from the data-first rule.
+- **Numerical kernel:** arrays/scalars in → arrays/scalars out; no DataFrame, I/O, or
+  facade state.
+
+The resolver / "provide-or-compute" behavior is not a domain-class or `lib` concern. It
+lives one level up: a user script, an AI agent, or `alphavar.flow` may assemble a chain
+from the self-described producer contracts. Domain classes and `lib` functions consume
+only the inputs they are explicitly given.
+
+### R1.2 Storage adapters are outside `lib`
+
+`<domain>/lib` may contain pure reference logic (split/reapply reference data, SCD-2
+folds, as-of joins), but it must not contain file, parquet, JSON, network, environment,
+or path-creation operations. Persistence adapters live in `io/provider`, `etl`, or a
+dedicated storage-adapter module outside `lib`, and call the pure `lib` functions.
+
+If a transitional adapter exists in `lib`, it must be tracked by a remediation task and
+must not become the pattern for new work.
+
 ## R2. Provider pattern
 
 - Every data source implements `AbstractProvider`
@@ -140,6 +170,12 @@ new provider, no caller changes" rule.
   (dependency injection of shared state). New capability areas (pricer, forecast,
   validation) follow the same pattern: a component class taking `OptionsData` in its
   constructor, exposed as an attribute of `Option`.
+- Facade methods are bindings over shared state: they may select the relevant stored
+  frame, call pure `lib` functions, validate boundary contracts, and assign the result
+  back to `OptionsData`. They must not hide material upstream computation that is not
+  named in the method contract. If a calculation needs another frame, result, or model
+  output, the caller/assembler passes it explicitly or invokes a clearly named
+  enrichment/producer step first.
 - **Model-factory pattern.** A capability area that offers *interchangeable algorithms*
   exposes them through a pure-`lib` factory: an abstract base + a name→class registry + a
   `make_*` selector (instance pass-through; unknown name → `ValueError`, catalogued-but-unbuilt
@@ -352,6 +388,11 @@ domain fields. Validation runs at layer boundaries (provider/exchange normalize 
 enrichment in dev) with `strict=False`, `coerce=True`, `lazy=True`; disabled in
 production ETL via config. See the backlog (T23) for the build-out.
 
+Result/interchange frames follow the same rule. Any output intended to feed another
+calculation gets a named schema (or a result class with an `interchange_schema`) before it
+is treated as a chain contract. The schema is the compatibility surface between
+capability areas; `flow` and other assemblers read it, they do not redefine it.
+
 ### R4.5 Classification axes — one word per axis
 
 An instrument is classified along several **independent axes**. Each axis is a distinct
@@ -489,6 +530,10 @@ first-class, queryable thing rather than redundant column noise.
 - New code in `options/lib` should prefer constructs with direct polars equivalents
   (column-wise expressions, joins, group-by aggregations) and avoid hard-to-port idioms
   (row-wise `df.apply`, implicit index reliance, `inplace=True` mutation chains).
+- New or touched `lib` code returns new frames/series instead of mutating caller-owned
+  frames in place. Existing pandas-specific hotspots (`groupby.apply`, temporary helper
+  columns, `inplace=True`, implicit index alignment) are remediation targets, not patterns
+  to copy.
 - Engine selection goes through the existing `DataEngine` enum
   (`io/provider/_provider_entities.py`); providers receive the engine explicitly.
 

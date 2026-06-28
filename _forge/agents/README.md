@@ -12,6 +12,7 @@ specifics — which modules, docs, tests, and profiles it works with.
 | Agent | Inherits role | Works on |
 |---|---|---|
 | [architect](architect/README.md) | [keystone/roles/architect](../keystone/roles/architect.md) | `docs/dev/` (R#), architecture, the column dictionary, ADRs in `docs/dev/decisions/` |
+| [reviewer](reviewer/README.md) | [keystone/roles/reviewer](../keystone/roles/reviewer.md) | evidence-first review of architecture, decisions, trade-offs, isolation, domain model, and risks |
 | [engineer](engineer/README.md) | [keystone/roles/engineer](../keystone/roles/engineer.md) | `src/alphavar/`, `tests/`, the `_forge/tools/` build tools |
 
 ## Applied baseline (alphavar)

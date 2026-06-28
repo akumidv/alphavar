@@ -18,3 +18,4 @@ Convention:
 - [0001 — InstrumentKind/ContractKind as the canonical instrument kind everywhere](0001-instrument-kind-canon.md)
 - [0002 — Forecast as a model factory: target × process × engine](0002-forecast-model-factory-axes.md)
 - [0003 — Composable result-chain: calculations feed calculations](0003-composable-result-chain.md)
+- [0004 — `lib` / class contracts and architecture remediation](0004-lib-class-contract-boundaries.md)
