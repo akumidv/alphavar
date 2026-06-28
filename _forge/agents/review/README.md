@@ -1,6 +1,6 @@
-# Agent: alphavar reviewer
+# Agent: alphavar review
 
-**Inherits** [keystone/roles/reviewer](../../keystone/roles/reviewer.md) —
+**Inherits** [keystone/roles/review](../../keystone/roles/review.md) —
 that file is the source of mission, scope, pipeline, requirements, guardrails, and definition of
 done. This charter adds **only alphavar specifics**; it does not restate the role.
 
@@ -21,10 +21,9 @@ done. This charter adds **only alphavar specifics**; it does not restate the rol
 
 ## Review focus
 
-- Review lens: use
-  [`architecture-review`](../../keystone/pipelines/architecture-review.md) for architecture/risk/
-  trade-off checks; use the draft [`security-review`](../../keystone/pipelines/security-review.md)
-  only when the task explicitly has a security lens or touches credentials, network/file/shell,
+- Review lens: follow [`review-flow`](../../keystone/pipelines/review-flow.md) (the single
+  analysis cycle — frame yardstick → decompose → measure → calibrate → hand off → report).
+  Apply a **security lens** within it when the subject touches credentials, network/file/shell,
   publication, generated code, unsafe input, or dependency boundaries.
 - Scope detection: infer whether the requested subject is all `alphavar`, one domain such as
   `options`, an infrastructure subsystem such as `io/provider`, a component such as `options/lib`,

@@ -5,19 +5,24 @@ from keystone ([`../keystone/roles/`](../keystone/roles/)) and adds only alphava
 specifics — which modules, docs, tests, and profiles it works with.
 
 > Role = the definition (in keystone, shared). Agent = the incarnation (here, local).
-> See the model in [`../keystone/README.md`](../keystone/README.md) §3.
+> See the model in [`../keystone/MODEL.md`](../keystone/MODEL.md) §3.
 
 ## Roster
 
+The DEVELOP triad — **analysis → synthesis → realization** (route by operation: decompose →
+`review` · construct → `architect` · realize → `engineer`). The cross-cutting `learn` and
+`release` roles ([keystone/roles/](../keystone/roles/)) are applied directly from keystone — no
+local incarnation until alphavar needs project specifics for them.
+
 | Agent | Inherits role | Works on |
 |---|---|---|
+| [review](review/README.md) | [keystone/roles/review](../keystone/roles/review.md) | evidence-first review of architecture, decisions, trade-offs, isolation, domain model, and risks |
 | [architect](architect/README.md) | [keystone/roles/architect](../keystone/roles/architect.md) | `docs/dev/` (R#), architecture, the column dictionary, ADRs in `docs/dev/decisions/` |
-| [reviewer](reviewer/README.md) | [keystone/roles/reviewer](../keystone/roles/reviewer.md) | evidence-first review of architecture, decisions, trade-offs, isolation, domain model, and risks |
 | [engineer](engineer/README.md) | [keystone/roles/engineer](../keystone/roles/engineer.md) | `src/alphavar/`, `tests/`, the `_forge/tools/` build tools |
 
 ## Applied baseline (alphavar)
 
-- **Project type:** `package` (a Python library; will split into packages later) →
+- **Archetype:** `package` (a Python library; will split into packages later) →
   USAGE = root `skills/` for the public API, **no USAGE `tools/`**.
 - **Language guardrails (automatic):** [`_common`](../keystone/guardrails/_common.md) +
   [`python`](../keystone/guardrails/python.md).

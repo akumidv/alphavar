@@ -26,10 +26,9 @@ This charter adds **only alphavar specifics**; it does not restate the role.
 
 - **Survey** reads the relevant `src/alphavar/<area>/` before proposing changes — the
   column dictionary and the provider/exchange contracts drift; confirm them in code.
-- **System-design** is rare: use the draft
-  [`system-design`](../../keystone/pipelines/system-design.md) pipeline only for a new domain,
-  major subsystem, or near-blank architecture. Ordinary architecture decisions stay on
-  [`design-flow`](../../keystone/pipelines/design-flow.md).
+- **Design** runs on [`design-flow`](../../keystone/pipelines/design-flow.md) for every
+  architecture decision — a new domain, major subsystem, or near-blank architecture gets the
+  same cycle with a wider Survey/Options budget, not a separate pipeline.
 - **Record** writes the ADR into `docs/dev/decisions/` and updates the matching **R#**.
 - **Hand off** opens the implementing task in [`../../TASKS.md`](../../TASKS.md) for the
   [engineer](../engineer/README.md) agent, linking the design + R#.

@@ -554,6 +554,7 @@ New archive entries follow the [tasks convention](keystone/pipelines/tasks.md): 
 no dates (use `git log`). The verbose `### T##` sections below predate the convention and are kept
 as frozen historical detail.
 
+- T45 · keystone realign v0.1.0→v0.2.1 · done · architect · `reviewer`→`review` (dir+charter), MODEL.md/Archetype terminology, `review-flow` replaces `architecture-review`/`security-review`/`system-design`, OPERATE layer noted, wrote `_forge/.keystone.toml`; sync/verify --strict green
 - T37 · result-chain V1 (price slice) · done · engineer · 3 autonomous producers + ResultTerm + Disc surface + flow prototype; forecast area reduced to producers · [design](design/result-chain/v1-price-slice.md)
 - T39 · keystone hook tests + CI gate · done · engineer · tests for `hook_core`; CI runs them, `verify.check_ci` requires it
 - T38 · D7 signature sweep · done · engineer · subject-first params (`schemas.validate`, `_fold_reference`, `write_reference`)

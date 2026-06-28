@@ -1,0 +1,6 @@
+keystone_version = "v0.2.1"        # `git -C _forge/keystone describe --tags`
+attached_archetype = "package/python"
+last_realign = "v0.2.1"            # version of the last attach/realign
+
+[test]
+runner = "uv run pytest"          # uv-managed project (see AGENTS.md / CLAUDE.md); release_check runs it verbatim
